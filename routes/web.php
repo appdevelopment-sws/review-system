@@ -16,6 +16,11 @@ Route::prefix('admin')->group(function () {
     // Authenticated Admin Routes
     Route::middleware(['admin'])->group(function () {
         Route::get('/dashboard', [AdminAuthController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/users', [AdminAuthController::class, 'users'])->name('admin.users');
+        Route::get('/campaigns', [AdminAuthController::class, 'campaigns'])->name('admin.campaigns');
+        Route::post('/campaigns', [AdminAuthController::class, 'storeCampaign'])->name('admin.campaigns.store');
+        Route::put('/campaigns/{id}', [AdminAuthController::class, 'updateCampaign'])->name('admin.campaigns.update');
+        Route::delete('/campaigns/{id}', [AdminAuthController::class, 'destroyCampaign'])->name('admin.campaigns.destroy');
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/', function () {
