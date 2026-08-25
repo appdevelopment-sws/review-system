@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\CampaignParticipation;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,6 +73,8 @@ class AdminAuthController extends Controller
 
         $recentUsers = User::latest()->take(5)->get();
         $recentCampaigns = Campaign::latest()->take(5)->get();
+        $pendingConversionsCount = CampaignParticipation::where('status', 'pending')->count();
+        $recentSubmissions = CampaignParticipation::with(['user', 'campaign'])->latest()->take(5)->get();
 
         return view('admin.dashboard', compact(
             'totalUsers',
@@ -82,7 +85,9 @@ class AdminAuthController extends Controller
             'totalRewardPool',
             'totalParticipants',
             'recentUsers',
-            'recentCampaigns'
+            'recentCampaigns',
+            'pendingConversionsCount',
+            'recentSubmissions'
         ));
     }
 
@@ -155,7 +160,6 @@ class AdminAuthController extends Controller
             'description' => 'nullable|string',
             'media_type' => 'required|in:image,video,none',
             'media_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:51200',
-            'media_url' => 'nullable|url',
             'redirect_url' => 'nullable|url|max:2000',
             'reward_amount' => 'required|numeric|min:0',
             'participant_limit' => 'required|integer|min:1',
@@ -186,7 +190,6 @@ class AdminAuthController extends Controller
             'description' => 'nullable|string',
             'media_type' => 'required|in:image,video,none',
             'media_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:51200',
-            'media_url' => 'nullable|url',
             'redirect_url' => 'nullable|url|max:2000',
             'reward_amount' => 'required|numeric|min:0',
             'participant_limit' => 'required|integer|min:1',
@@ -198,8 +201,6 @@ class AdminAuthController extends Controller
         if ($request->hasFile('media_file')) {
             $path = $request->file('media_file')->store('campaigns', 'public');
             $validated['media_url'] = asset('storage/' . $path);
-        } elseif (empty($validated['media_url'])) {
-            $validated['media_url'] = $campaign->media_url;
         }
 
         $campaign->update($validated);
@@ -216,6 +217,115 @@ class AdminAuthController extends Controller
         $campaign->delete();
 
         return redirect()->route('admin.campaigns')->with('success', 'Campaign deleted successfully!');
+    }
+
+    /**
+     * Display Recent Conversions & Submissions (Shared SS Proofs).
+     */
+    public function conversions(Request $request)
+    {
+        $query = CampaignParticipation::with(['campaign', 'user']);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('user', function($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                })->orWhereHas('campaign', function($campQuery) use ($search) {
+                    $campQuery->where('title', 'like', "%{$search}%");
+                });
+            });
+        }
+
+        $participations = $query->latest()->paginate(10)->withQueryString();
+
+        $totalConversions = CampaignParticipation::count();
+        $pendingCount = CampaignParticipation::where('status', 'pending')->count();
+        $approvedCount = CampaignParticipation::where('status', 'approved')->count();
+        $rejectedCount = CampaignParticipation::where('status', 'rejected')->count();
+
+        return view('admin.conversions.index', compact(
+            'participations',
+            'totalConversions',
+            'pendingCount',
+            'approvedCount',
+            'rejectedCount'
+        ));
+    }
+
+    /**
+     * Update Submission Status (Approve / Reject review screenshot proof).
+     */
+    public function updateConversionStatus(Request $request, $id)
+    {
+        $participation = CampaignParticipation::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|in:pending,approved,rejected',
+            'admin_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $oldStatus = $participation->status;
+        $newStatus = $validated['status'];
+
+        $participation->update([
+            'status' => $newStatus,
+            'admin_notes' => $validated['admin_notes'] ?? null,
+        ]);
+
+        // Adjust campaign participants count when approved/rejected
+        $campaign = $participation->campaign;
+        if ($campaign) {
+            if ($oldStatus !== 'approved' && $newStatus === 'approved') {
+                $campaign->increment('participants_count');
+            } elseif ($oldStatus === 'approved' && $newStatus !== 'approved') {
+                $campaign->decrement('participants_count');
+            }
+        }
+
+        return back()->with('success', 'Submission status updated to ' . ucfirst($newStatus) . ' successfully!');
+    }
+
+    /**
+     * Display detailed Report & Analytics for a specific Campaign.
+     */
+    public function campaignReport($id)
+    {
+        $campaign = Campaign::with(['participations.user'])->findOrFail($id);
+        
+        $totalClicks = $campaign->clicks_count;
+        $totalSubmissions = $campaign->participations->count();
+        $approvedSubmissions = $campaign->participations->where('status', 'approved')->count();
+        $pendingSubmissions = $campaign->participations->where('status', 'pending')->count();
+        $conversionRate = $campaign->conversionRate();
+        $totalPaidOut = $approvedSubmissions * $campaign->reward_amount;
+
+        return view('admin.campaigns.report', compact(
+            'campaign',
+            'totalClicks',
+            'totalSubmissions',
+            'approvedSubmissions',
+            'pendingSubmissions',
+            'conversionRate',
+            'totalPaidOut'
+        ));
+    }
+
+    /**
+     * Track Click & Redirect User.
+     */
+    public function trackClick($id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        $campaign->increment('clicks_count');
+
+        $redirectUrl = $campaign->redirect_url ?: route('admin.campaigns');
+        return redirect()->away($redirectUrl);
     }
 
     /**

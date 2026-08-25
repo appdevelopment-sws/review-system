@@ -26,6 +26,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get user campaign participations.
+     */
+    public function participations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(CampaignParticipation::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

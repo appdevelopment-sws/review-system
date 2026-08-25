@@ -85,8 +85,14 @@
                         {{ $campaign->status }}
                     </span>
 
-                    <!-- Quick Action Buttons (Edit / Delete) -->
+                    <!-- Quick Action Buttons (Edit / Report / Delete) -->
                     <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <a href="{{ route('admin.campaigns.report', $campaign->id) }}" 
+                           class="p-2 rounded-xl bg-white/90 hover:bg-purple-600 text-slate-700 hover:text-white backdrop-blur-md transition-colors shadow-md border border-slate-200" title="Analytics & Report">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </a>
                         <button type="button" onclick='openEditModal(@json($campaign))' 
                                 class="p-2 rounded-xl bg-white/90 hover:bg-indigo-600 text-slate-700 hover:text-white backdrop-blur-md transition-colors shadow-md border border-slate-200" title="Edit Campaign">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,21 +121,34 @@
                             {!! strip_tags($campaign->description) !!}
                         </div>
 
-                        <!-- Redirect Destination Link -->
-                        @if ($campaign->redirect_url)
-                            <div class="mt-3 pt-2">
-                                <a href="{{ $campaign->redirect_url }}" target="_blank" rel="noopener noreferrer"
+                        <!-- Redirect Destination Link & Report Button -->
+                        <div class="mt-3 pt-2 flex items-center justify-between gap-2">
+                            @if ($campaign->redirect_url)
+                                <a href="{{ route('campaign.redirect', $campaign->id) }}" target="_blank" rel="noopener noreferrer"
                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
-                                    <span>Visit Target Link</span>
+                                    <span>Target Link</span>
                                 </a>
-                            </div>
-                        @endif
+                            @else
+                                <span class="text-[11px] text-slate-400">No redirect URL</span>
+                            @endif
+
+                            <a href="{{ route('admin.campaigns.report', $campaign->id) }}" 
+                               class="inline-flex items-center gap-1 text-xs font-bold text-purple-600 hover:text-purple-700">
+                                <span>Report & Stats 📊</span>
+                            </a>
+                        </div>
                     </div>
 
                     <div class="space-y-3 pt-3 border-t border-slate-100">
+                        <!-- Stats Row: Clicks & Reward Amount -->
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-500 font-medium">Clicks: <strong class="text-slate-900 font-bold">{{ $campaign->clicks_count }}</strong></span>
+                            <span class="text-slate-500 font-medium">Conv Rate: <strong class="text-purple-600 font-bold">{{ $campaign->conversionRate() }}%</strong></span>
+                        </div>
+
                         <!-- Reward Amount & Limit -->
                         <div class="flex items-center justify-between">
                             <div>
@@ -179,7 +198,7 @@
     @endif
 </div>
 
-<!-- CREATE / EDIT CAMPAIGN MODAL WITH FILE UPLOAD & REDIRECT URL -->
+<!-- CREATE / EDIT CAMPAIGN MODAL WITH DIRECT FILE UPLOAD & REDIRECT URL -->
 <div id="campaignModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden p-4 overflow-y-auto">
     <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl p-6 sm:p-8 my-8 relative">
         <!-- Close Button -->
@@ -232,8 +251,8 @@
                 </div>
             </div>
 
-            <!-- Media Upload Section -->
-            <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-4">
+            <!-- Direct Media Upload Section -->
+            <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Media Type</label>
@@ -249,12 +268,6 @@
                         <input type="file" name="media_file" id="formMediaFile" accept="image/*,video/*" 
                                class="w-full text-xs font-semibold text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer">
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-[11px] font-semibold text-slate-500 mb-1">Or External Media URL (Optional Fallback)</label>
-                    <input type="url" name="media_url" id="formMediaUrl" placeholder="https://images.unsplash.com/photo-..." 
-                           class="w-full px-4 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-indigo-600">
                 </div>
             </div>
 
@@ -361,7 +374,6 @@
         document.getElementById('formRewardAmount').value = campaign.reward_amount || '';
         document.getElementById('formParticipantLimit').value = campaign.participant_limit || '';
         document.getElementById('formMediaType').value = campaign.media_type || 'image';
-        document.getElementById('formMediaUrl').value = campaign.media_url || '';
         document.getElementById('formStatus').value = campaign.status || 'active';
         
         if (campaign.start_date) {

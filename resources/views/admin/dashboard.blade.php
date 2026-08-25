@@ -9,15 +9,28 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">System Performance & Stats</h1>
-            <p class="text-sm text-slate-500 mt-1">Real-time metrics for users, active campaigns, and reward payouts.</p>
+            <p class="text-sm text-slate-500 mt-1">Real-time metrics for users, active campaigns, conversions, and review proof screenshots.</p>
         </div>
-        <a href="{{ route('admin.campaigns') }}" 
-           class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition-all">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Create Campaign</span>
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.conversions') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 text-sm font-bold rounded-xl shadow-xs transition-all">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>View Conversions</span>
+                @if(isset($pendingConversionsCount) && $pendingConversionsCount > 0)
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white">{{ $pendingConversionsCount }}</span>
+                @endif
+            </a>
+
+            <a href="{{ route('admin.campaigns') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold rounded-xl shadow-md shadow-indigo-600/20 transition-all">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Create Campaign</span>
+            </a>
+        </div>
     </div>
 
     <!-- Stats Grid -->
@@ -54,19 +67,19 @@
             </div>
         </div>
 
-        <!-- Stat Card 3: Total Participations -->
+        <!-- Stat Card 3: Pending Conversions (Shared SS Proofs) -->
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-300 hover:shadow-md transition-all shadow-xs">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Users Availed</span>
-                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Review SS</span>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
             </div>
             <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-slate-900">{{ $totalParticipants }}</span>
-                <span class="text-xs text-emerald-600 font-bold">Participations</span>
+                <span class="text-3xl font-extrabold text-slate-900">{{ $pendingConversionsCount ?? 0 }}</span>
+                <span class="text-xs text-amber-600 font-bold">Awaiting Approval</span>
             </div>
         </div>
 
@@ -74,7 +87,7 @@
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-300 hover:shadow-md transition-all shadow-xs">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Reward Pool</span>
-                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -82,10 +95,65 @@
             </div>
             <div class="mt-4 flex items-baseline gap-2">
                 <span class="text-3xl font-extrabold text-slate-900">${{ number_format($totalRewardPool, 2) }}</span>
-                <span class="text-xs text-amber-600 font-bold">Allocated</span>
+                <span class="text-xs text-emerald-600 font-bold">Allocated</span>
             </div>
         </div>
     </div>
+
+    <!-- Recent Conversions & Shared Review Screenshots -->
+    @if(isset($recentSubmissions) && $recentSubmissions->count() > 0)
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-base font-extrabold text-slate-900">Recent Conversions & Review Proof Screenshots</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Latest user submissions with shared review screenshot proofs</p>
+                </div>
+                <a href="{{ route('admin.conversions') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">View All Conversions →</a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @foreach ($recentSubmissions as $sub)
+                    <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600">
+                                    {{ strtoupper(substr($sub->user->name ?? 'U', 0, 1)) }}
+                                </div>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-900">{{ $sub->user->name ?? 'User' }}</div>
+                                    <div class="text-[10px] text-slate-500">{{ $sub->created_at->diffForHumans() }}</div>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border
+                                {{ $sub->status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
+                                {{ $sub->status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
+                                {{ $sub->status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : '' }}">
+                                {{ $sub->status }}
+                            </span>
+                        </div>
+
+                        <div class="text-xs font-bold text-slate-900 truncate">
+                            {{ $sub->campaign->title ?? 'Campaign' }}
+                        </div>
+
+                        @if ($sub->proof_image)
+                            <a href="{{ route('admin.conversions') }}" class="block rounded-xl overflow-hidden border border-slate-200 shadow-xs h-28 bg-slate-900 relative group">
+                                <img src="{{ $sub->proof_image }}" alt="Proof Screenshot" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                <span class="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold">
+                                    Review Proof SS ↗
+                                </span>
+                            </a>
+                        @endif
+
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                            <span class="text-xs text-slate-500 font-medium">Reward: <strong class="text-emerald-600">${{ number_format($sub->reward_amount, 2) }}</strong></span>
+                            <a href="{{ route('admin.conversions') }}" class="text-xs font-bold text-indigo-600 hover:underline">Manage Submission →</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     <!-- Grid Section: Recent Campaigns & Recent Users -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
