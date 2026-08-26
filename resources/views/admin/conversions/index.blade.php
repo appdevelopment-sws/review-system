@@ -111,7 +111,7 @@
 
                             <!-- Reward Amount -->
                             <td class="px-6 py-4">
-                                <span class="font-extrabold text-emerald-600 text-base">${{ number_format($item->reward_amount, 2) }}</span>
+                                <span class="font-extrabold text-emerald-600 text-base">₹{{ number_format($item->reward_amount, 2) }}</span>
                             </td>
 
                             <!-- Status Badge -->

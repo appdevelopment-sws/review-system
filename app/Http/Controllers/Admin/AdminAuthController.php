@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class AdminAuthController extends Controller
 {
@@ -71,10 +73,10 @@ class AdminAuthController extends Controller
         $totalRewardPool = Campaign::sum(\DB::raw('reward_amount * participant_limit'));
         $totalParticipants = Campaign::sum('participants_count');
 
-        $recentUsers = User::latest()->take(5)->get();
-        $recentCampaigns = Campaign::latest()->take(5)->get();
+        $recentUsers = User::latest()->take(10)->get();
+        $recentCampaigns = Campaign::latest()->take(10)->get();
         $pendingConversionsCount = CampaignParticipation::where('status', 'pending')->count();
-        $recentSubmissions = CampaignParticipation::with(['user', 'campaign'])->latest()->take(5)->get();
+        $recentSubmissions = CampaignParticipation::with(['user', 'campaign'])->latest()->take(10)->get();
 
         return view('admin.dashboard', compact(
             'totalUsers',
@@ -263,7 +265,7 @@ class AdminAuthController extends Controller
      */
     public function updateConversionStatus(Request $request, $id)
     {
-        $participation = CampaignParticipation::findOrFail($id);
+        $participation = CampaignParticipation::with(['campaign', 'user'])->findOrFail($id);
 
         $validated = $request->validate([
             'status' => 'required|in:pending,approved,rejected',
@@ -273,22 +275,59 @@ class AdminAuthController extends Controller
         $oldStatus = $participation->status;
         $newStatus = $validated['status'];
 
-        $participation->update([
-            'status' => $newStatus,
-            'admin_notes' => $validated['admin_notes'] ?? null,
-        ]);
+        DB::transaction(function () use ($participation, $oldStatus, $newStatus, $validated) {
+            $participation->update([
+                'status' => $newStatus,
+                'admin_notes' => $validated['admin_notes'] ?? null,
+            ]);
 
-        // Adjust campaign participants count when approved/rejected
-        $campaign = $participation->campaign;
-        if ($campaign) {
+            $campaign = $participation->campaign;
+            $user = $participation->user;
+            $rewardAmount = (float) $participation->reward_amount;
+
+            // Adjust campaign participants count and user wallet when approved
             if ($oldStatus !== 'approved' && $newStatus === 'approved') {
-                $campaign->increment('participants_count');
-            } elseif ($oldStatus === 'approved' && $newStatus !== 'approved') {
-                $campaign->decrement('participants_count');
-            }
-        }
+                if ($campaign) {
+                    $campaign->increment('participants_count');
+                }
+                if ($user && $rewardAmount > 0) {
+                    $user->increment('wallet_balance', $rewardAmount);
 
-        return back()->with('success', 'Submission status updated to ' . ucfirst($newStatus) . ' successfully!');
+                    // Create Wallet Transaction Record
+                    WalletTransaction::create([
+                        'user_id' => $user->id,
+                        'type' => 'credit',
+                        'amount' => $rewardAmount,
+                        'title' => 'Task Reward: ' . ($campaign->title ?? 'Task Completed'),
+                        'description' => 'Approved task reward for submission #' . $participation->id,
+                        'reference_id' => $participation->id,
+                        'reference_type' => 'campaign_participation',
+                        'status' => 'completed',
+                    ]);
+                }
+            } elseif ($oldStatus === 'approved' && $newStatus !== 'approved') {
+                if ($campaign) {
+                    $campaign->decrement('participants_count');
+                }
+                if ($user && $rewardAmount > 0) {
+                    $user->decrement('wallet_balance', min($user->wallet_balance, $rewardAmount));
+
+                    // Create Reversal Transaction Record
+                    WalletTransaction::create([
+                        'user_id' => $user->id,
+                        'type' => 'debit',
+                        'amount' => $rewardAmount,
+                        'title' => 'Reversal: ' . ($campaign->title ?? 'Task Reverted'),
+                        'description' => 'Submission #' . $participation->id . ' status changed to ' . $newStatus,
+                        'reference_id' => $participation->id,
+                        'reference_type' => 'campaign_participation',
+                        'status' => 'completed',
+                    ]);
+                }
+            }
+        });
+
+        return back()->with('success', 'Submission status updated to ' . ucfirst($newStatus) . ' successfully! Wallet balance updated.');
     }
 
     /**
