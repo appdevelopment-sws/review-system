@@ -55,8 +55,10 @@
                         <th class="px-6 py-4">ID</th>
                         <th class="px-6 py-4">User</th>
                         <th class="px-6 py-4">Role</th>
-                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Wallet Balance</th>
+                        <th class="px-6 py-4">Completed Campaigns</th>
                         <th class="px-6 py-4">Registered Date</th>
+                        <th class="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -64,15 +66,15 @@
                         <tr class="hover:bg-slate-50/80 transition-colors">
                             <td class="px-6 py-4 font-mono text-xs text-slate-400">#{{ $user->id }}</td>
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600">
+                                <a href="{{ route('admin.users.show', $user->id) }}" class="flex items-center gap-3 group">
+                                    <div class="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                         {{ strtoupper(substr($user->name, 0, 1)) }}
                                     </div>
                                     <div>
-                                        <div class="font-bold text-slate-900 text-sm">{{ $user->name }}</div>
+                                        <div class="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">{{ $user->name }}</div>
                                         <div class="text-xs text-slate-500">{{ $user->email }}</div>
                                     </div>
-                                </div>
+                                </a>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold capitalize border
@@ -82,18 +84,39 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    Active
-                                </span>
+                                <span class="font-bold text-slate-900 text-sm">₹{{ number_format($user->wallet_balance ?? 0, 2) }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        {{ $user->completed_participations_count ?? 0 }} Completed
+                                    </span>
+                                    @if(($user->pending_participations_count ?? 0) > 0)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Pending Verification">
+                                            {{ $user->pending_participations_count }} Pending
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-xs text-slate-500 font-medium">
                                 {{ $user->created_at ? $user->created_at->format('M d, Y') : 'N/A' }}
                             </td>
+                            <td class="px-6 py-4 text-right">
+                                <a href="{{ route('admin.users.show', $user->id) }}" 
+                                   class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 transition-all shadow-xs">
+                                    <span>View Campaigns</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-slate-400 text-sm">
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-400 text-sm">
                                 No user accounts match your search filter.
                             </td>
                         </tr>

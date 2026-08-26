@@ -20,6 +20,7 @@ Route::prefix('admin')->group(function () {
     Route::middleware(['admin'])->group(function () {
         Route::get('/dashboard', [AdminAuthController::class, 'dashboard'])->name('admin.dashboard');
         Route::get('/users', [AdminAuthController::class, 'users'])->name('admin.users');
+        Route::get('/users/{id}', [AdminAuthController::class, 'showUser'])->name('admin.users.show');
         
         // Campaigns & Reports
         Route::get('/campaigns', [AdminAuthController::class, 'campaigns'])->name('admin.campaigns');

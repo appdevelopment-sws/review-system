@@ -120,15 +120,26 @@
                         <tr class="hover:bg-slate-50/80 transition-colors">
                             <!-- User Column -->
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600">
-                                        {{ strtoupper(substr($item->user->name ?? 'U', 0, 1)) }}
+                                @if($item->user_id)
+                                    <a href="{{ route('admin.users.show', $item->user_id) }}" class="flex items-center gap-3 group">
+                                        <div class="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                            {{ strtoupper(substr($item->user->name ?? 'U', 0, 1)) }}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">{{ $item->user->name ?? 'Unknown User' }}</div>
+                                            <div class="text-xs text-slate-500">{{ $item->user->email ?? 'N/A' }}</div>
+                                        </div>
+                                    </a>
+                                @else
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs text-slate-600">
+                                            U
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-slate-900 text-sm">Deleted User</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="font-bold text-slate-900 text-sm">{{ $item->user->name ?? 'Unknown User' }}</div>
-                                        <div class="text-xs text-slate-500">{{ $item->user->email ?? 'N/A' }}</div>
-                                    </div>
-                                </div>
+                                @endif
                             </td>
 
                             <!-- Amount Column -->
@@ -252,9 +263,10 @@
 </div>
 
 <!-- WITHDRAWAL DETAIL & PAYOUT ACTION MODAL -->
-<div id="withdrawalModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden p-4 overflow-y-auto">
-    <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl p-6 sm:p-8 my-8 relative">
-        <button type="button" onclick="closeWithdrawalModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800">
+<div id="withdrawalModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm hidden" onclick="if(event.target === this) closeWithdrawalModal()">
+    <div class="min-h-full flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl p-6 sm:p-8 my-8 relative" onclick="event.stopPropagation()">
+            <button type="button" onclick="closeWithdrawalModal()" class="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -403,6 +415,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 @endsection
 

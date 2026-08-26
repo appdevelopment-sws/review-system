@@ -283,13 +283,13 @@
 
             <div class="space-y-3">
                 @forelse ($recentUsers as $user)
-                    <div class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between">
+                    <a href="{{ route('admin.users.show', $user->id) }}" class="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between hover:border-slate-300 hover:bg-slate-100/70 transition-colors group">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600">
+                            <div class="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                 {{ strtoupper(substr($user->name, 0, 1)) }}
                             </div>
                             <div>
-                                <div class="text-xs font-bold text-slate-900">{{ $user->name }}</div>
+                                <div class="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{{ $user->name }}</div>
                                 <div class="text-[11px] text-slate-500">{{ $user->email }}</div>
                             </div>
                         </div>
@@ -297,7 +297,7 @@
                             {{ $user->role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
                             {{ $user->role }}
                         </span>
-                    </div>
+                    </a>
                 @empty
                     <p class="text-sm text-slate-500 text-center py-6">No users found.</p>
                 @endforelse

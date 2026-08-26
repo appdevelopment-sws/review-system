@@ -199,116 +199,141 @@
 </div>
 
 <!-- CREATE / EDIT CAMPAIGN MODAL WITH DIRECT FILE UPLOAD & REDIRECT URL -->
-<div id="campaignModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden p-4 overflow-y-auto">
-    <div class="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl shadow-2xl p-6 sm:p-8 my-8 relative">
-        <!-- Close Button -->
-        <button type="button" onclick="closeCampaignModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-800">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
+<div id="campaignModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm hidden" onclick="if(event.target === this) closeCampaignModal()">
+    <div class="min-h-full flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div class="bg-white border border-slate-200/90 rounded-3xl w-full max-w-5xl shadow-2xl p-6 sm:p-8 relative my-8" onclick="event.stopPropagation()">
+            <!-- Close Button -->
+            <button type="button" onclick="closeCampaignModal()" class="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
 
-        <h2 id="modalTitle" class="text-xl font-extrabold text-slate-900 mb-1">Create New Campaign</h2>
-        <p id="modalSubtitle" class="text-xs text-slate-500 mb-6">Upload campaign media file, set destination redirect URL, reward limits, and format description with CKEditor.</p>
-
-        <form method="POST" action="{{ route('admin.campaigns.store') }}" id="campaignForm" enctype="multipart/form-data" class="space-y-5">
-            @csrf
-            <div id="methodContainer"></div>
-
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Campaign Title</label>
-                <input type="text" name="title" id="formTitle" required placeholder="e.g. Summer App Feedback Reward Campaign" 
-                       class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+            <!-- Modal Header -->
+            <div class="pr-12 mb-6 border-b border-slate-100 pb-4">
+                <h2 id="modalTitle" class="text-xl font-extrabold text-slate-900 tracking-tight mb-1">Create New Campaign</h2>
+                <p id="modalSubtitle" class="text-xs text-slate-500">Upload media file, set destination redirect URL, reward limits, and format rich description with CKEditor.</p>
             </div>
 
-            <!-- Main Redirect URL (Destination Link) -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Campaign Target / Redirect URL (Main Link)</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                    </span>
-                    <input type="url" name="redirect_url" id="formRedirectUrl" placeholder="https://example.com/campaign-landing-page" 
-                           class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                </div>
-                <p class="text-[11px] text-slate-500 mt-1">Users clicking on this campaign will be redirected to this link.</p>
-            </div>
+            <form method="POST" action="{{ route('admin.campaigns.store') }}" id="campaignForm" enctype="multipart/form-data" class="space-y-6">
+                @csrf
+                <div id="methodContainer"></div>
 
-            <!-- Reward Amount & Participant Limit -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Reward Amount ($ / user)</label>
-                    <input type="number" step="0.01" min="0" name="reward_amount" id="formRewardAmount" required placeholder="15.00" 
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                </div>
+                <!-- 2-Column Responsive Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    <!-- Left Column: Core Campaign Settings, URLs, Limits, Upload & Dates -->
+                    <div class="lg:col-span-6 space-y-4">
+                        <!-- Campaign Title -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Campaign Title</label>
+                            <input type="text" name="title" id="formTitle" required placeholder="e.g. Summer App Feedback Reward Campaign" 
+                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                        </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Participant Limit (Max Users)</label>
-                    <input type="number" min="1" name="participant_limit" id="formParticipantLimit" required placeholder="100" 
-                           class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-                </div>
-            </div>
+                        <!-- Main Redirect URL (Destination Link) -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Campaign Target / Redirect URL (Main Link)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                </span>
+                                <input type="url" name="redirect_url" id="formRedirectUrl" placeholder="https://example.com/campaign-landing-page" 
+                                       class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-1">Users clicking on this campaign will be redirected to this link.</p>
+                        </div>
 
-            <!-- Direct Media Upload Section -->
-            <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Media Type</label>
-                        <select name="media_type" id="formMediaType" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-indigo-600">
-                            <option value="image">Image</option>
-                            <option value="video">Video</option>
-                            <option value="none">None</option>
-                        </select>
+                        <!-- Reward Amount & Participant Limit -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Reward Amount ($ / user)</label>
+                                <input type="number" step="0.01" min="0" name="reward_amount" id="formRewardAmount" required placeholder="15.00" 
+                                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Participant Limit (Max Users)</label>
+                                <input type="number" min="1" name="participant_limit" id="formParticipantLimit" required placeholder="100" 
+                                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                            </div>
+                        </div>
+
+                        <!-- Direct Media Upload Section -->
+                        <div class="p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Media Type</label>
+                                    <select name="media_type" id="formMediaType" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-indigo-600">
+                                        <option value="image">Image</option>
+                                        <option value="video">Video</option>
+                                        <option value="none">None</option>
+                                    </select>
+                                </div>
+
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Upload Media File (Image / Video)</label>
+                                    <input type="file" name="media_file" id="formMediaFile" accept="image/*,video/*" 
+                                           class="w-full text-xs font-semibold text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status & Dates -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Status</label>
+                                <select name="status" id="formStatus" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
+                                    <option value="active">Active</option>
+                                    <option value="paused">Paused</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="draft">Draft</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Start Date</label>
+                                <input type="date" name="start_date" id="formStartDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">End Date</label>
+                                <input type="date" name="end_date" id="formEndDate" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Upload Media File (Image / Video)</label>
-                        <input type="file" name="media_file" id="formMediaFile" accept="image/*,video/*" 
-                               class="w-full text-xs font-semibold text-slate-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer">
+                    <!-- Right Column: Rich Description (CKEditor) -->
+                    <div class="lg:col-span-6 flex flex-col h-full">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Campaign Description (CKEditor Rich Text)</label>
+                        <div class="flex-1 flex flex-col campaign-editor-wrapper">
+                            <textarea name="description" id="campaign_description_editor" class="w-full hidden"></textarea>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-2">Detail instructions, eligibility rules, and steps participants need to follow.</p>
                     </div>
                 </div>
-            </div>
 
-            <!-- Status & Dates -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Status</label>
-                    <select name="status" id="formStatus" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
-                        <option value="active">Active</option>
-                        <option value="paused">Paused</option>
-                        <option value="completed">Completed</option>
-                        <option value="draft">Draft</option>
-                    </select>
+                <!-- Footer Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeCampaignModal()" class="px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 text-sm font-semibold transition-colors cursor-pointer">Cancel</button>
+                    <button type="submit" id="submitBtn" class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer">
+                        Publish Campaign
+                    </button>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Start Date</label>
-                    <input type="date" name="start_date" id="formStartDate" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">End Date</label>
-                    <input type="date" name="end_date" id="formEndDate" class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
-                </div>
-            </div>
-
-            <!-- OFFICIAL CKEDITOR 5 RICH TEXT EDITOR -->
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Campaign Description (CKEditor Rich Text)</label>
-                <textarea name="description" id="campaign_description_editor" class="w-full hidden"></textarea>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button type="button" onclick="closeCampaignModal()" class="px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 text-sm font-semibold">Cancel</button>
-                <button type="submit" id="submitBtn" class="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm rounded-xl shadow-md shadow-indigo-600/20">
-                    Publish Campaign
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
+
+<style>
+    .campaign-editor-wrapper .ck.ck-editor__main > .ck-editor__editable {
+        min-height: 290px !important;
+        max-height: 380px !important;
+        overflow-y: auto !important;
+    }
+</style>
 @endsection
 
 @section('scripts')

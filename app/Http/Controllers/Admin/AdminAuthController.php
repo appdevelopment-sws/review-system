@@ -106,7 +106,15 @@ class AdminAuthController extends Controller
      */
     public function users(Request $request)
     {
-        $query = User::query();
+        $query = User::withCount([
+            'participations as total_participations_count',
+            'participations as completed_participations_count' => function ($q) {
+                $q->where('status', 'approved');
+            },
+            'participations as pending_participations_count' => function ($q) {
+                $q->where('status', 'pending');
+            },
+        ]);
 
         if ($request->filled('role')) {
             $query->where('role', $request->role);
@@ -126,6 +134,74 @@ class AdminAuthController extends Controller
         $userCount = User::where('role', 'user')->count();
 
         return view('admin.users.index', compact('users', 'totalUsers', 'adminCount', 'userCount'));
+    }
+
+    /**
+     * Display detailed profile and completed campaigns/tasks for a specific User.
+     */
+    public function showUser(Request $request, $id)
+    {
+        $user = User::with(['payoutDetails', 'defaultPayoutDetail'])->findOrFail($id);
+
+        // Participations / Task Submissions Query
+        $participationsQuery = CampaignParticipation::with('campaign')
+            ->where('user_id', $user->id);
+
+        if ($request->filled('status') && in_array($request->status, ['pending', 'approved', 'rejected'])) {
+            $participationsQuery->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $participationsQuery->whereHas('campaign', function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%");
+            });
+        }
+
+        $participations = $participationsQuery->latest()->paginate(10)->withQueryString();
+
+        // Metrics for this user
+        $totalSubmissions = CampaignParticipation::where('user_id', $user->id)->count();
+        $completedCampaignsCount = CampaignParticipation::where('user_id', $user->id)->where('status', 'approved')->count();
+        $pendingSubmissionsCount = CampaignParticipation::where('user_id', $user->id)->where('status', 'pending')->count();
+        $rejectedSubmissionsCount = CampaignParticipation::where('user_id', $user->id)->where('status', 'rejected')->count();
+
+        $totalEarned = (float) CampaignParticipation::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->sum('reward_amount');
+
+        $totalWithdrawn = (float) WithdrawalRequest::where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->sum('amount');
+
+        $pendingWithdrawalAmount = (float) WithdrawalRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->sum('amount');
+
+        // Recent Wallet Transactions & Withdrawal Requests
+        $recentTransactions = WalletTransaction::where('user_id', $user->id)
+            ->latest()
+            ->take(10)
+            ->get();
+
+        $recentWithdrawals = WithdrawalRequest::where('user_id', $user->id)
+            ->latest()
+            ->take(10)
+            ->get();
+
+        return view('admin.users.show', compact(
+            'user',
+            'participations',
+            'totalSubmissions',
+            'completedCampaignsCount',
+            'pendingSubmissionsCount',
+            'rejectedSubmissionsCount',
+            'totalEarned',
+            'totalWithdrawn',
+            'pendingWithdrawalAmount',
+            'recentTransactions',
+            'recentWithdrawals'
+        ));
     }
 
     /**
