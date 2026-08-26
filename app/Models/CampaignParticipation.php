@@ -44,4 +44,17 @@ class CampaignParticipation extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Dynamic accessor for proof image URL to handle host resolution across web & mobile.
+     */
+    public function getProofImageAttribute($value): ?string
+    {
+        if (!$value) return null;
+        if (str_contains($value, '10.0.2.2:8000')) {
+            $path = strstr($value, '/storage/');
+            return $path ? asset(ltrim($path, '/')) : $value;
+        }
+        return $value;
+    }
 }

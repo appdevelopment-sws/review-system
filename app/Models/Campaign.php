@@ -72,4 +72,17 @@ class Campaign extends Model
         if ($this->clicks_count <= 0) return 0.0;
         return round(($this->participants_count / $this->clicks_count) * 100, 1);
     }
+
+    /**
+     * Dynamic accessor for media URL to resolve Android emulator host alias when accessed via web.
+     */
+    public function getMediaUrlAttribute($value): ?string
+    {
+        if (!$value) return null;
+        if (str_contains($value, '10.0.2.2:8000')) {
+            $path = strstr($value, '/storage/');
+            return $path ? asset(ltrim($path, '/')) : $value;
+        }
+        return $value;
+    }
 }
