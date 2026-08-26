@@ -125,8 +125,8 @@
                     👤 Normal User
                 </button>
             </div>
-        </div>
-    </div> -->
+        </div> -->
+    </div>
 
     <script>
         const togglePasswordBtn = document.getElementById('togglePasswordBtn');

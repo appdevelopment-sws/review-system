@@ -189,7 +189,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reward / User</span>
-                                <span class="text-lg font-extrabold text-emerald-600">${{ number_format($campaign->reward_amount, 2) }}</span>
+                                <span class="text-lg font-extrabold text-emerald-600">₹{{ number_format($campaign->reward_amount, 2) }}</span>
                             </div>
                             <div class="text-right">
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Avail Limit</span>
@@ -298,7 +298,7 @@
                         <!-- Reward Amount & Participant Limit -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Reward Amount ($ / user)</label>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Reward Amount (₹ / user)</label>
                                 <input type="number" step="0.01" min="0" name="reward_amount" id="formRewardAmount" required placeholder="15.00" 
                                        class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
                             </div>

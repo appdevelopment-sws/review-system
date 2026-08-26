@@ -244,7 +244,7 @@
 
                     <div class="flex items-center gap-2">
                         <button type="submit" name="status" value="approved" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
-                            ✓ Approve & Reward ${{ '' }}
+                            ✓ Approve & Reward
                         </button>
                         <button type="submit" name="status" value="rejected" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
                             ✕ Reject Proof

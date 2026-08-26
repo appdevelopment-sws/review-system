@@ -99,8 +99,8 @@
                 </div>
             </div>
             <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-emerald-600">${{ number_format($totalPaidOut, 2) }}</span>
-                <span class="text-xs text-slate-500 font-medium">of ${{ number_format($campaign->reward_amount * $campaign->participant_limit, 2) }} Pool</span>
+                <span class="text-3xl font-extrabold text-emerald-600">₹{{ number_format($totalPaidOut, 2) }}</span>
+                <span class="text-xs text-slate-500 font-medium">of ₹{{ number_format($campaign->reward_amount * $campaign->participant_limit, 2) }} Pool</span>
             </div>
         </div>
     </div>
@@ -117,7 +117,7 @@
         <div class="space-y-4 border-l border-slate-100 pl-6">
             <div>
                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Reward per User</span>
-                <span class="text-xl font-extrabold text-emerald-600">${{ number_format($campaign->reward_amount, 2) }}</span>
+                <span class="text-xl font-extrabold text-emerald-600">₹{{ number_format($campaign->reward_amount, 2) }}</span>
             </div>
 
             <div>
@@ -178,7 +178,7 @@
                             </td>
 
                             <td class="px-6 py-4 font-extrabold text-emerald-600">
-                                ${{ number_format($item->reward_amount, 2) }}
+                                ₹{{ number_format($item->reward_amount, 2) }}
                             </td>
 
                             <td class="px-6 py-4">

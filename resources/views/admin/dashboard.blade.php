@@ -246,7 +246,7 @@
                             <div class="min-w-0">
                                 <h3 class="text-sm font-bold text-slate-900 truncate">{{ $campaign->title }}</h3>
                                 <div class="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                                    <span class="text-emerald-600 font-bold">${{ number_format($campaign->reward_amount, 2) }} / user</span>
+                                    <span class="text-emerald-600 font-bold">₹{{ number_format($campaign->reward_amount, 2) }} / user</span>
                                     <span>•</span>
                                     <span>{{ $campaign->participants_count }} / {{ $campaign->participant_limit }} availed</span>
                                 </div>
