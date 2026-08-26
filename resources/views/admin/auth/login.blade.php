@@ -113,7 +113,7 @@
         </form>
 
         <!-- Quick Demo Credential Autofill -->
-        <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+        <!-- <div class="mt-8 pt-6 border-t border-slate-100 text-center">
             <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Quick Demo Login</p>
             <div class="flex gap-2 justify-center">
                 <button type="button" onclick="fillCredentials('admin@admin.com', 'password123')"
@@ -126,7 +126,7 @@
                 </button>
             </div>
         </div>
-    </div>
+    </div> -->
 
     <script>
         const togglePasswordBtn = document.getElementById('togglePasswordBtn');
