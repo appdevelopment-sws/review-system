@@ -16,6 +16,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [ApiAuthController::class, 'me']);
     Route::post('/logout', [ApiAuthController::class, 'logout']);
 
+    // Categories Route
+    Route::get('/categories', [ApiTaskController::class, 'categories']);
+
     // Task / Campaign Routes
     Route::get('/tasks', [ApiTaskController::class, 'index']);
     Route::get('/tasks/{id}', [ApiTaskController::class, 'show']);

@@ -22,6 +22,12 @@ Route::prefix('admin')->group(function () {
         Route::get('/users', [AdminAuthController::class, 'users'])->name('admin.users');
         Route::get('/users/{id}', [AdminAuthController::class, 'showUser'])->name('admin.users.show');
         
+        // Categories Management
+        Route::get('/categories', [AdminAuthController::class, 'categories'])->name('admin.categories');
+        Route::post('/categories', [AdminAuthController::class, 'storeCategory'])->name('admin.categories.store');
+        Route::put('/categories/{id}', [AdminAuthController::class, 'updateCategory'])->name('admin.categories.update');
+        Route::delete('/categories/{id}', [AdminAuthController::class, 'destroyCategory'])->name('admin.categories.destroy');
+
         // Campaigns & Reports
         Route::get('/campaigns', [AdminAuthController::class, 'campaigns'])->name('admin.campaigns');
         Route::post('/campaigns', [AdminAuthController::class, 'storeCampaign'])->name('admin.campaigns.store');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Campaign extends Model
@@ -13,6 +14,7 @@ class Campaign extends Model
     protected $fillable = [
         'title',
         'description',
+        'category_id',
         'media_type',
         'media_url',
         'redirect_url',
@@ -37,6 +39,14 @@ class Campaign extends Model
             'start_date' => 'datetime',
             'end_date' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the category this campaign belongs to.
+     */
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     /**

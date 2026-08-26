@@ -23,37 +23,62 @@
 
     <!-- Filter Pills -->
     <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('admin.campaigns') }}" 
-               class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ !request('status') ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
+               class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ !request('status') && !request('category_id') ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 All Campaigns ({{ $totalCampaigns }})
             </a>
-            <a href="{{ route('admin.campaigns', ['status' => 'active']) }}" 
+            <a href="{{ route('admin.campaigns', array_merge(request()->query(), ['status' => 'active'])) }}" 
                class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ request('status') === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 Active ({{ $activeCount }})
             </a>
-            <a href="{{ route('admin.campaigns', ['status' => 'paused']) }}" 
+            <a href="{{ route('admin.campaigns', array_merge(request()->query(), ['status' => 'paused'])) }}" 
                class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ request('status') === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 Paused ({{ $pausedCount }})
             </a>
-            <a href="{{ route('admin.campaigns', ['status' => 'completed']) }}" 
+            <a href="{{ route('admin.campaigns', array_merge(request()->query(), ['status' => 'completed'])) }}" 
                class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ request('status') === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 Completed ({{ $completedCount }})
             </a>
         </div>
 
-        <form method="GET" action="{{ route('admin.campaigns') }}" class="relative w-full sm:w-64">
-            @if(request('status'))
-                <input type="hidden" name="status" value="{{ request('status') }}">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            @if(count($categories) > 0)
+                <form method="GET" action="{{ route('admin.campaigns') }}" class="inline-block">
+                    @if(request('status'))
+                        <input type="hidden" name="status" value="{{ request('status') }}">
+                    @endif
+                    @if(request('search'))
+                        <input type="hidden" name="search" value="{{ request('search') }}">
+                    @endif
+                    <select name="category_id" onchange="this.form.submit()" 
+                            class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs font-semibold focus:outline-none focus:bg-white focus:border-indigo-600 cursor-pointer">
+                        <option value="">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>
+                                📁 {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
             @endif
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </span>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search campaigns..." 
-                   class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
-        </form>
+
+            <form method="GET" action="{{ route('admin.campaigns') }}" class="relative w-full sm:w-64">
+                @if(request('status'))
+                    <input type="hidden" name="status" value="{{ request('status') }}">
+                @endif
+                @if(request('category_id'))
+                    <input type="hidden" name="category_id" value="{{ request('category_id') }}">
+                @endif
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </span>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search campaigns..." 
+                       class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+            </form>
+        </div>
     </div>
 
     <!-- Campaigns Grid -->
@@ -76,14 +101,25 @@
                         </div>
                     @endif
 
-                    <!-- Status Badge -->
-                    <span class="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold capitalize border shadow-xs backdrop-blur-md
-                        {{ $campaign->status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
-                        {{ $campaign->status === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
-                        {{ $campaign->status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' : '' }}
-                        {{ $campaign->status === 'draft' ? 'bg-slate-100 text-slate-700 border-slate-200' : '' }}">
-                        {{ $campaign->status }}
-                    </span>
+                    <!-- Status & Category Badges -->
+                    <div class="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold capitalize border shadow-xs backdrop-blur-md
+                            {{ $campaign->status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
+                            {{ $campaign->status === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
+                            {{ $campaign->status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' : '' }}
+                            {{ $campaign->status === 'draft' ? 'bg-slate-100 text-slate-700 border-slate-200' : '' }}">
+                            {{ $campaign->status }}
+                        </span>
+
+                        @if ($campaign->category)
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/95 text-indigo-700 shadow-xs border border-indigo-200/80 backdrop-blur-md flex items-center gap-1">
+                                <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <span>{{ $campaign->category->name }}</span>
+                            </span>
+                        @endif
+                    </div>
 
                     <!-- Quick Action Buttons (Edit / Report / Delete) -->
                     <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -224,11 +260,24 @@
                     
                     <!-- Left Column: Core Campaign Settings, URLs, Limits, Upload & Dates -->
                     <div class="lg:col-span-6 space-y-4">
-                        <!-- Campaign Title -->
-                        <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Campaign Title</label>
-                            <input type="text" name="title" id="formTitle" required placeholder="e.g. Summer App Feedback Reward Campaign" 
-                                   class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                        <!-- Campaign Title & Category Selector -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Campaign Title</label>
+                                <input type="text" name="title" id="formTitle" required placeholder="e.g. Google Reviews Task" 
+                                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Category</label>
+                                <select name="category_id" id="formCategoryId" 
+                                        class="w-full px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:bg-white focus:border-indigo-600">
+                                    <option value="">-- No Category (General) --</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                         </div>
 
                         <!-- Main Redirect URL (Destination Link) -->
@@ -378,6 +427,7 @@
         document.getElementById('methodContainer').innerHTML = '';
         
         form.reset();
+        document.getElementById('formCategoryId').value = '';
         if (campaignCkEditor) {
             campaignCkEditor.setData('<p>Welcome to our new campaign! Please follow the steps below to participate and claim your reward.</p>');
         }
@@ -395,6 +445,7 @@
         document.getElementById('methodContainer').innerHTML = '<input type="hidden" name="_method" value="PUT">';
 
         document.getElementById('formTitle').value = campaign.title || '';
+        document.getElementById('formCategoryId').value = campaign.category_id || '';
         document.getElementById('formRedirectUrl').value = campaign.redirect_url || '';
         document.getElementById('formRewardAmount').value = campaign.reward_amount || '';
         document.getElementById('formParticipantLimit').value = campaign.participant_limit || '';

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
+use App\Models\Category;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
@@ -205,14 +206,107 @@ class AdminAuthController extends Controller
     }
 
     /**
+     * Display the Categories management page.
+     */
+    public function categories(Request $request)
+    {
+        $query = Category::withCount('campaigns');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $categories = $query->latest()->paginate(12)->withQueryString();
+        $totalCategories = Category::count();
+        $totalCampaignsCategorized = Campaign::whereNotNull('category_id')->count();
+
+        return view('admin.categories.index', compact(
+            'categories',
+            'totalCategories',
+            'totalCampaignsCategorized'
+        ));
+    }
+
+    /**
+     * Store a newly created Category.
+     */
+    public function storeCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+            'image_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,svg|max:10240',
+            'image_url' => 'nullable|string|max:2000',
+        ]);
+
+        $imageUrl = $validated['image_url'] ?? null;
+
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('categories', 'public');
+            $imageUrl = asset('storage/' . $path);
+        }
+
+        Category::create([
+            'name' => $validated['name'],
+            'image' => $imageUrl,
+        ]);
+
+        return redirect()->route('admin.categories')->with('success', 'Category created successfully!');
+    }
+
+    /**
+     * Update an existing Category.
+     */
+    public function updateCategory(Request $request, $id)
+    {
+        $category = Category::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'image_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,svg|max:10240',
+            'image_url' => 'nullable|string|max:2000',
+        ]);
+
+        $updateData = [
+            'name' => $validated['name'],
+        ];
+
+        if ($request->hasFile('image_file')) {
+            $path = $request->file('image_file')->store('categories', 'public');
+            $updateData['image'] = asset('storage/' . $path);
+        } elseif ($request->filled('image_url')) {
+            $updateData['image'] = $validated['image_url'];
+        }
+
+        $category->update($updateData);
+
+        return redirect()->route('admin.categories')->with('success', 'Category updated successfully!');
+    }
+
+    /**
+     * Delete a Category.
+     */
+    public function destroyCategory($id)
+    {
+        $category = Category::findOrFail($id);
+        $category->delete();
+
+        return redirect()->route('admin.categories')->with('success', 'Category deleted successfully!');
+    }
+
+    /**
      * Display the Campaigns management page.
      */
     public function campaigns(Request $request)
     {
-        $query = Campaign::query();
+        $query = Campaign::with('category');
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
         }
 
         if ($request->filled('search')) {
@@ -226,13 +320,15 @@ class AdminAuthController extends Controller
         $activeCount = Campaign::where('status', 'active')->count();
         $pausedCount = Campaign::where('status', 'paused')->count();
         $completedCount = Campaign::where('status', 'completed')->count();
+        $categories = Category::orderBy('name')->get();
 
         return view('admin.campaigns.index', compact(
             'campaigns',
             'totalCampaigns',
             'activeCount',
             'pausedCount',
-            'completedCount'
+            'completedCount',
+            'categories'
         ));
     }
 
@@ -244,6 +340,7 @@ class AdminAuthController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'category_id' => 'nullable|exists:categories,id',
             'media_type' => 'required|in:image,video,none',
             'media_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:51200',
             'redirect_url' => 'nullable|url|max:2000',
@@ -274,6 +371,7 @@ class AdminAuthController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'category_id' => 'nullable|exists:categories,id',
             'media_type' => 'required|in:image,video,none',
             'media_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:51200',
             'redirect_url' => 'nullable|url|max:2000',

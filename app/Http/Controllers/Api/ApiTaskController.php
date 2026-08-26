@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
+use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,12 +13,41 @@ use Illuminate\Support\Facades\Storage;
 class ApiTaskController extends Controller
 {
     /**
+     * Get list of all categories with active campaigns count.
+     */
+    public function categories(Request $request): JsonResponse
+    {
+        $categories = Category::withCount(['campaigns' => function ($q) {
+            $q->where('status', 'active');
+        }])->get()->map(function ($cat) {
+            return [
+                'id' => $cat->id,
+                'name' => $cat->name,
+                'image' => $cat->image,
+                'campaigns_count' => $cat->campaigns_count,
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'categories' => $categories,
+            ],
+        ]);
+    }
+
+    /**
      * Get paginated list of all available tasks/campaigns.
      */
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = Campaign::where('status', 'active');
+        $query = Campaign::with('category')->where('status', 'active');
+
+        // Filter by Category
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
 
         // Search by Title
         if ($request->filled('search')) {
@@ -52,6 +82,12 @@ class ApiTaskController extends Controller
                 'id' => $campaign->id,
                 'title' => $campaign->title,
                 'description' => $campaign->description,
+                'category_id' => $campaign->category_id,
+                'category' => $campaign->category ? [
+                    'id' => $campaign->category->id,
+                    'name' => $campaign->category->name,
+                    'image' => $campaign->category->image,
+                ] : null,
                 'media_type' => $campaign->media_type,
                 'media_url' => $campaign->media_url,
                 'redirect_url' => $campaign->redirect_url,
@@ -92,7 +128,7 @@ class ApiTaskController extends Controller
     public function show(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        $campaign = Campaign::findOrFail($id);
+        $campaign = Campaign::with('category')->findOrFail($id);
         $participation = CampaignParticipation::where('campaign_id', $id)
             ->where('user_id', $user->id)
             ->first();
@@ -104,6 +140,12 @@ class ApiTaskController extends Controller
                     'id' => $campaign->id,
                     'title' => $campaign->title,
                     'description' => $campaign->description,
+                    'category_id' => $campaign->category_id,
+                    'category' => $campaign->category ? [
+                        'id' => $campaign->category->id,
+                        'name' => $campaign->category->name,
+                        'image' => $campaign->category->image,
+                    ] : null,
                     'media_type' => $campaign->media_type,
                     'media_url' => $campaign->media_url,
                     'redirect_url' => $campaign->redirect_url,
