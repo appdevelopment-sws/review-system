@@ -43,6 +43,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Get user payout details (bank / upi).
+     */
+    public function payoutDetails(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserPayoutDetail::class);
+    }
+
+    /**
+     * Get user's default/primary payout detail.
+     */
+    public function defaultPayoutDetail(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserPayoutDetail::class)->latestOfMany();
+    }
+
+    /**
+     * Get user withdrawal requests.
+     */
+    public function withdrawalRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WithdrawalRequest::class);
+    }
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

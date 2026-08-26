@@ -32,6 +32,10 @@ Route::prefix('admin')->group(function () {
         Route::get('/conversions', [AdminAuthController::class, 'conversions'])->name('admin.conversions');
         Route::post('/conversions/{id}/status', [AdminAuthController::class, 'updateConversionStatus'])->name('admin.conversions.status');
 
+        // Withdrawal Requests & Payout Processing
+        Route::get('/withdrawals', [AdminAuthController::class, 'withdrawals'])->name('admin.withdrawals');
+        Route::post('/withdrawals/{id}/status', [AdminAuthController::class, 'updateWithdrawalStatus'])->name('admin.withdrawals.status');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/', function () {

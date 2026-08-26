@@ -25,4 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Wallet & Withdrawal Routes
     Route::get('/wallet', [ApiWalletController::class, 'index']);
     Route::post('/wallet/withdraw', [ApiWalletController::class, 'withdraw']);
+    Route::get('/wallet/withdrawals', [ApiWalletController::class, 'withdrawals']);
+
+    // User Bank / UPI Payout Details
+    Route::get('/user/payout-details', [ApiWalletController::class, 'getPayoutDetails']);
+    Route::post('/user/payout-details', [ApiWalletController::class, 'savePayoutDetails']);
 });

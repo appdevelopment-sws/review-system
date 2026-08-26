@@ -6,43 +6,35 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class WalletTransaction extends Model
+class UserPayoutDetail extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'type',
-        'amount',
-        'title',
-        'description',
-        'reference_id',
-        'reference_type',
-        'status',
+        'payout_type',
+        'account_holder_name',
+        'upi_id',
+        'bank_name',
+        'account_number',
+        'ifsc_code',
+        'is_default',
     ];
 
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:2',
+            'is_default' => 'boolean',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
     }
 
     /**
-     * Get the user that owns this transaction.
+     * Get the user that owns the payout detail.
      */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the associated withdrawal request if reference_type is withdrawal_request.
-     */
-    public function withdrawalRequest(): BelongsTo
-    {
-        return $this->belongsTo(WithdrawalRequest::class, 'reference_id');
     }
 }

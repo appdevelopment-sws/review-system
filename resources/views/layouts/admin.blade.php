@@ -155,6 +155,23 @@
                     <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white shadow-xs animate-pulse">{{ $pendingCountBadge }}</span>
                 @endif
             </a>
+
+            <!-- Withdrawal Requests Link -->
+            <a href="{{ route('admin.withdrawals') }}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 border {{ request()->routeIs('admin.withdrawals*') ? 'bg-indigo-50 text-indigo-600 border-indigo-200/80 font-semibold shadow-xs' : 'text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900' }}">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 {{ request()->routeIs('admin.withdrawals*') ? 'text-indigo-600' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span>Withdrawals</span>
+                </div>
+                @php
+                    $pendingWithdrawalsBadge = \App\Models\WithdrawalRequest::where('status', 'pending')->count();
+                @endphp
+                @if($pendingWithdrawalsBadge > 0)
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-600 text-white shadow-xs animate-pulse">{{ $pendingWithdrawalsBadge }}</span>
+                @endif
+            </a>
         </div>
 
         <!-- Admin Profile Footer & Logout -->

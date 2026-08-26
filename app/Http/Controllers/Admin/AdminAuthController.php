@@ -7,6 +7,7 @@ use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Models\WithdrawalRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -78,6 +79,10 @@ class AdminAuthController extends Controller
         $pendingConversionsCount = CampaignParticipation::where('status', 'pending')->count();
         $recentSubmissions = CampaignParticipation::with(['user', 'campaign'])->latest()->take(10)->get();
 
+        $pendingWithdrawalsCount = WithdrawalRequest::where('status', 'pending')->count();
+        $totalWithdrawalPaid = WithdrawalRequest::where('status', 'approved')->sum('amount');
+        $recentWithdrawals = WithdrawalRequest::with('user')->latest()->take(8)->get();
+
         return view('admin.dashboard', compact(
             'totalUsers',
             'adminCount',
@@ -89,7 +94,10 @@ class AdminAuthController extends Controller
             'recentUsers',
             'recentCampaigns',
             'pendingConversionsCount',
-            'recentSubmissions'
+            'recentSubmissions',
+            'pendingWithdrawalsCount',
+            'totalWithdrawalPaid',
+            'recentWithdrawals'
         ));
     }
 
@@ -365,6 +373,153 @@ class AdminAuthController extends Controller
 
         $redirectUrl = $campaign->redirect_url ?: route('admin.campaigns');
         return redirect()->away($redirectUrl);
+    }
+
+    /**
+     * Display Withdrawal Requests management page.
+     */
+    public function withdrawals(Request $request)
+    {
+        $query = WithdrawalRequest::with('user');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('payout_type')) {
+            $query->where('payout_type', $request->payout_type);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('upi_id', 'like', "%{$search}%")
+                  ->orWhere('account_number', 'like', "%{$search}%")
+                  ->orWhere('account_holder_name', 'like', "%{$search}%")
+                  ->orWhere('utr_number', 'like', "%{$search}%");
+            });
+        }
+
+        $withdrawals = $query->latest()->paginate(10)->withQueryString();
+
+        $totalWithdrawals = WithdrawalRequest::count();
+        $pendingCount = WithdrawalRequest::where('status', 'pending')->count();
+        $approvedCount = WithdrawalRequest::where('status', 'approved')->count();
+        $rejectedCount = WithdrawalRequest::where('status', 'rejected')->count();
+
+        $totalPendingAmount = (float) WithdrawalRequest::where('status', 'pending')->sum('amount');
+        $totalPaidAmount = (float) WithdrawalRequest::where('status', 'approved')->sum('amount');
+
+        return view('admin.withdrawals.index', compact(
+            'withdrawals',
+            'totalWithdrawals',
+            'pendingCount',
+            'approvedCount',
+            'rejectedCount',
+            'totalPendingAmount',
+            'totalPaidAmount'
+        ));
+    }
+
+    /**
+     * Update Withdrawal Request Status (Approve/Pay with screenshot proof, or Reject & Refund).
+     */
+    public function updateWithdrawalStatus(Request $request, $id)
+    {
+        $withdrawal = WithdrawalRequest::with(['user', 'walletTransaction'])->findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'proof_image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
+            'utr_number' => 'nullable|string|max:100',
+            'admin_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $oldStatus = $withdrawal->status;
+        $newStatus = $validated['status'];
+
+        if ($oldStatus !== 'pending') {
+            return back()->with('error', 'This withdrawal request has already been processed as ' . ucfirst($oldStatus) . '.');
+        }
+
+        DB::transaction(function () use ($withdrawal, $newStatus, $validated, $request) {
+            $updateData = [
+                'status' => $newStatus,
+                'admin_notes' => $validated['admin_notes'] ?? null,
+                'processed_at' => now(),
+            ];
+
+            if ($newStatus === 'approved') {
+                if ($request->hasFile('proof_image')) {
+                    $path = $request->file('proof_image')->store('withdrawals', 'public');
+                    $updateData['proof_image'] = asset('storage/' . $path);
+                }
+                if (!empty($validated['utr_number'])) {
+                    $updateData['utr_number'] = $validated['utr_number'];
+                }
+
+                $withdrawal->update($updateData);
+
+                // Update corresponding WalletTransaction to completed
+                $transaction = WalletTransaction::where('reference_type', 'withdrawal_request')
+                    ->where('reference_id', $withdrawal->id)
+                    ->first();
+
+                if ($transaction) {
+                    $desc = 'Processed to ' . ($withdrawal->upi_id ?: $withdrawal->account_number);
+                    if (!empty($validated['utr_number'])) {
+                        $desc .= ' [UTR: ' . $validated['utr_number'] . ']';
+                    }
+                    $transaction->update([
+                        'status' => 'completed',
+                        'description' => $desc,
+                    ]);
+                }
+            } elseif ($newStatus === 'rejected') {
+                $withdrawal->update($updateData);
+
+                // Refund the amount back to user's wallet
+                $user = $withdrawal->user;
+                if ($user) {
+                    $user->increment('wallet_balance', (float) $withdrawal->amount);
+                }
+
+                // Update corresponding WalletTransaction to rejected
+                $transaction = WalletTransaction::where('reference_type', 'withdrawal_request')
+                    ->where('reference_id', $withdrawal->id)
+                    ->first();
+
+                if ($transaction) {
+                    $transaction->update([
+                        'status' => 'rejected',
+                        'description' => 'Rejected: ' . ($validated['admin_notes'] ?? 'Refunded to wallet balance'),
+                    ]);
+                }
+
+                // Log a refund transaction entry in wallet transactions
+                if ($user) {
+                    WalletTransaction::create([
+                        'user_id' => $user->id,
+                        'type' => 'credit',
+                        'amount' => $withdrawal->amount,
+                        'title' => 'Refund: Withdrawal #' . $withdrawal->id,
+                        'description' => 'Refunded due to rejection: ' . ($validated['admin_notes'] ?? 'Request rejected by admin'),
+                        'reference_id' => $withdrawal->id,
+                        'reference_type' => 'withdrawal_refund',
+                        'status' => 'completed',
+                    ]);
+                }
+            }
+        });
+
+        $msg = $newStatus === 'approved' 
+            ? 'Withdrawal of ₹' . number_format($withdrawal->amount, 2) . ' marked as Paid & Approved successfully!' 
+            : 'Withdrawal request rejected and ₹' . number_format($withdrawal->amount, 2) . ' refunded to user wallet.';
+
+        return back()->with('success', $msg);
     }
 
     /**

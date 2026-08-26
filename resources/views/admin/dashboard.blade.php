@@ -9,15 +9,26 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">System Performance & Stats</h1>
-            <p class="text-sm text-slate-500 mt-1">Real-time metrics for users, active campaigns, conversions, and review proof screenshots.</p>
+            <p class="text-sm text-slate-500 mt-1">Real-time metrics for users, active campaigns, conversions, withdrawals, and review proof screenshots.</p>
         </div>
         <div class="flex items-center gap-3">
+            <a href="{{ route('admin.withdrawals') }}" 
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 text-sm font-bold rounded-xl shadow-xs transition-all">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <span>Withdrawals</span>
+                @if(isset($pendingWithdrawalsCount) && $pendingWithdrawalsCount > 0)
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-600 text-white animate-pulse">{{ $pendingWithdrawalsCount }}</span>
+                @endif
+            </a>
+
             <a href="{{ route('admin.conversions') }}" 
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-slate-900 text-sm font-bold rounded-xl shadow-xs transition-all">
                 <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>View Conversions</span>
+                <span>Conversions</span>
                 @if(isset($pendingConversionsCount) && $pendingConversionsCount > 0)
                     <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white">{{ $pendingConversionsCount }}</span>
                 @endif
@@ -51,19 +62,19 @@
             </div>
         </div>
 
-        <!-- Stat Card 2: Active Campaigns -->
+        <!-- Stat Card 2: Pending Withdrawals -->
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-300 hover:shadow-md transition-all shadow-xs">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Active Campaigns</span>
-                <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Withdrawals</span>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
             </div>
             <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-slate-900">{{ $activeCampaigns }}</span>
-                <span class="text-xs text-slate-500 font-medium">of {{ $totalCampaigns }} total</span>
+                <span class="text-3xl font-extrabold text-amber-600">{{ $pendingWithdrawalsCount ?? 0 }}</span>
+                <a href="{{ route('admin.withdrawals', ['status' => 'pending']) }}" class="text-xs text-indigo-600 font-bold hover:underline">Review & Pay →</a>
             </div>
         </div>
 
@@ -71,7 +82,7 @@
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-300 hover:shadow-md transition-all shadow-xs">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Pending Review SS</span>
-                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <div class="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -79,23 +90,23 @@
             </div>
             <div class="mt-4 flex items-baseline gap-2">
                 <span class="text-3xl font-extrabold text-slate-900">{{ $pendingConversionsCount ?? 0 }}</span>
-                <span class="text-xs text-amber-600 font-bold">Awaiting Approval</span>
+                <span class="text-xs text-purple-600 font-bold">Awaiting Verification</span>
             </div>
         </div>
 
-        <!-- Stat Card 4: Total Reward Pool -->
+        <!-- Stat Card 4: Total Payouts Completed -->
         <div class="bg-white border border-slate-200/80 rounded-2xl p-5 relative overflow-hidden group hover:border-slate-300 hover:shadow-md transition-all shadow-xs">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Reward Pool</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Paid Out</span>
                 <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
             </div>
             <div class="mt-4 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-slate-900">${{ number_format($totalRewardPool, 2) }}</span>
-                <span class="text-xs text-emerald-600 font-bold">Allocated</span>
+                <span class="text-3xl font-extrabold text-slate-900">₹{{ number_format($totalWithdrawalPaid ?? 0, 2) }}</span>
+                <span class="text-xs text-emerald-600 font-bold">Processed</span>
             </div>
         </div>
     </div>
@@ -146,8 +157,59 @@
                         @endif
 
                         <div class="flex items-center justify-between pt-2 border-t border-slate-200/60">
-                            <span class="text-xs text-slate-500 font-medium">Reward: <strong class="text-emerald-600">${{ number_format($sub->reward_amount, 2) }}</strong></span>
+                            <span class="text-xs text-slate-500 font-medium">Reward: <strong class="text-emerald-600">₹{{ number_format($sub->reward_amount, 2) }}</strong></span>
                             <a href="{{ route('admin.conversions') }}" class="text-xs font-bold text-indigo-600 hover:underline">Manage Submission →</a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    <!-- Recent Withdrawal Requests Section -->
+    @if(isset($recentWithdrawals) && $recentWithdrawals->count() > 0)
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-base font-extrabold text-slate-900">Recent Withdrawal Requests & Payouts</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Latest user requests for bank transfer & UPI payouts</p>
+                </div>
+                <a href="{{ route('admin.withdrawals') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">View All Withdrawals →</a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                @foreach ($recentWithdrawals as $with)
+                    <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col justify-between space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-xs text-indigo-600">
+                                    {{ strtoupper(substr($with->user->name ?? 'U', 0, 1)) }}
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="text-xs font-bold text-slate-900 truncate max-w-[100px]">{{ $with->user->name ?? 'User' }}</div>
+                                    <div class="text-[10px] text-slate-500">{{ $with->created_at->diffForHumans() }}</div>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold capitalize border
+                                {{ $with->status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
+                                {{ $with->status === 'pending' ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
+                                {{ $with->status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' : '' }}">
+                                {{ $with->status === 'approved' ? 'Paid' : $with->status }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <div class="text-base font-extrabold text-slate-900">₹{{ number_format($with->amount, 2) }}</div>
+                            <div class="text-[11px] text-slate-500 truncate font-mono mt-0.5">
+                                {{ $with->payout_type === 'upi' ? 'UPI: ' . ($with->upi_id ?? 'N/A') : 'A/C: ' . ($with->account_number ?? 'N/A') }}
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                            <span class="text-[10px] uppercase font-bold text-indigo-600">{{ $with->payout_type }}</span>
+                            <a href="{{ route('admin.withdrawals') }}" class="text-xs font-bold text-indigo-600 hover:underline">
+                                {{ $with->status === 'pending' ? 'Pay Now →' : 'Details →' }}
+                            </a>
                         </div>
                     </div>
                 @endforeach
