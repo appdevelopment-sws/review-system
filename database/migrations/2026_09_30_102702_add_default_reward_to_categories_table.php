@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->decimal('default_reward', 8, 2)->default(20.00)->after('image');
+            if (!Schema::hasColumn('categories', 'default_reward')) {
+                $table->decimal('default_reward', 8, 2)->default(20.00)->after('image');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->dropColumn('default_reward');
+            if (Schema::hasColumn('categories', 'default_reward')) {
+                $table->dropColumn('default_reward');
+            }
         });
     }
 };

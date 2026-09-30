@@ -12,10 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('campaigns', function (Blueprint $table) {
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->nullOnDelete();
-            $table->string('platform')->nullable()->after('category_id');
-            $table->text('instructions')->nullable()->after('description');
-            $table->text('payment_info')->nullable()->after('status');
+            if (!Schema::hasColumn('campaigns', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('campaigns', 'platform')) {
+                $table->string('platform')->nullable()->after('category_id');
+            }
+            if (!Schema::hasColumn('campaigns', 'instructions')) {
+                $table->text('instructions')->nullable()->after('description');
+            }
+            if (!Schema::hasColumn('campaigns', 'payment_info')) {
+                $table->text('payment_info')->nullable()->after('status');
+            }
         });
     }
 
@@ -25,8 +33,21 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('campaigns', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            $table->dropColumn(['user_id', 'platform', 'instructions', 'payment_info']);
+            if (Schema::hasColumn('campaigns', 'user_id')) {
+                try {
+                    $table->dropForeign(['user_id']);
+                } catch (\Throwable $e) {}
+                $table->dropColumn('user_id');
+            }
+            if (Schema::hasColumn('campaigns', 'platform')) {
+                $table->dropColumn('platform');
+            }
+            if (Schema::hasColumn('campaigns', 'instructions')) {
+                $table->dropColumn('instructions');
+            }
+            if (Schema::hasColumn('campaigns', 'payment_info')) {
+                $table->dropColumn('payment_info');
+            }
         });
     }
 };
