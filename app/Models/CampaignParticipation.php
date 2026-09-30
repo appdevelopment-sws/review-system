@@ -15,6 +15,7 @@ class CampaignParticipation extends Model
         'user_id',
         'proof_image',
         'review_text',
+        'review_link',
         'status',
         'reward_amount',
         'admin_notes',

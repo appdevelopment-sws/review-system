@@ -12,9 +12,13 @@ class Campaign extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'title',
         'description',
         'category_id',
+        'platform',
+        'instructions',
+        'suggested_points',
         'media_type',
         'media_url',
         'redirect_url',
@@ -24,21 +28,27 @@ class Campaign extends Model
         'clicks_count',
         'impressions_count',
         'status',
+        'payment_info',
         'start_date',
         'end_date',
     ];
 
-    protected function casts(): array
+    protected $casts = [
+        'reward_amount' => 'decimal:2',
+        'participant_limit' => 'integer',
+        'participants_count' => 'integer',
+        'clicks_count' => 'integer',
+        'impressions_count' => 'integer',
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+    ];
+
+    /**
+     * Get the business user who created this campaign.
+     */
+    public function business(): BelongsTo
     {
-        return [
-            'reward_amount' => 'decimal:2',
-            'participant_limit' => 'integer',
-            'participants_count' => 'integer',
-            'clicks_count' => 'integer',
-            'impressions_count' => 'integer',
-            'start_date' => 'datetime',
-            'end_date' => 'datetime',
-        ];
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

@@ -27,6 +27,30 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user has business role.
+     */
+    public function isBusiness(): bool
+    {
+        return $this->role === 'business';
+    }
+
+    /**
+     * Get campaigns created by this business user.
+     */
+    /**
+     * Get campaigns created by this user / business.
+     */
+    public function campaigns(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Campaign::class, 'user_id');
+    }
+
+    public function businessCampaigns(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Campaign::class, 'user_id');
+    }
+
+    /**
      * Get user campaign participations.
      */
     public function participations(): \Illuminate\Database\Eloquent\Relations\HasMany

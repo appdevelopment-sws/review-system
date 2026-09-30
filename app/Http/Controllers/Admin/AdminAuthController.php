@@ -115,6 +115,7 @@ class AdminAuthController extends Controller
             'participations as pending_participations_count' => function ($q) {
                 $q->where('status', 'pending');
             },
+            'campaigns as created_campaigns_count',
         ]);
 
         if ($request->filled('role')) {
@@ -131,10 +132,11 @@ class AdminAuthController extends Controller
 
         $users = $query->latest()->paginate(10)->withQueryString();
         $totalUsers = User::count();
-        $adminCount = User::where('role', 'admin')->count();
         $userCount = User::where('role', 'user')->count();
+        $businessCount = User::where('role', 'business')->count();
+        $adminCount = User::where('role', 'admin')->count();
 
-        return view('admin.users.index', compact('users', 'totalUsers', 'adminCount', 'userCount'));
+        return view('admin.users.index', compact('users', 'totalUsers', 'userCount', 'businessCount', 'adminCount'));
     }
 
     /**
@@ -235,6 +237,7 @@ class AdminAuthController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
+            'default_reward' => 'required|numeric|min:0.5',
             'image_file' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,svg|max:10240',
             'image_url' => 'nullable|string|max:2000',
         ]);
@@ -318,6 +321,7 @@ class AdminAuthController extends Controller
         
         $totalCampaigns = Campaign::count();
         $activeCount = Campaign::where('status', 'active')->count();
+        $pendingCount = Campaign::where('status', 'pending')->count();
         $pausedCount = Campaign::where('status', 'paused')->count();
         $completedCount = Campaign::where('status', 'completed')->count();
         $categories = Category::orderBy('name')->get();
@@ -326,6 +330,7 @@ class AdminAuthController extends Controller
             'campaigns',
             'totalCampaigns',
             'activeCount',
+            'pendingCount',
             'pausedCount',
             'completedCount',
             'categories'
@@ -346,7 +351,7 @@ class AdminAuthController extends Controller
             'redirect_url' => 'nullable|url|max:2000',
             'reward_amount' => 'required|numeric|min:0',
             'participant_limit' => 'required|integer|min:1',
-            'status' => 'required|in:active,paused,completed,draft',
+            'status' => 'required|in:active,paused,completed,draft,pending,rejected',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
@@ -377,7 +382,7 @@ class AdminAuthController extends Controller
             'redirect_url' => 'nullable|url|max:2000',
             'reward_amount' => 'required|numeric|min:0',
             'participant_limit' => 'required|integer|min:1',
-            'status' => 'required|in:active,paused,completed,draft',
+            'status' => 'required|in:active,paused,completed,draft,pending,rejected',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
         ]);
@@ -401,6 +406,33 @@ class AdminAuthController extends Controller
         $campaign->delete();
 
         return redirect()->route('admin.campaigns')->with('success', 'Campaign deleted successfully!');
+    }
+
+    /**
+     * Approve a submitted business campaign and make it live for users.
+     */
+    public function approveCampaign($id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        $campaign->update([
+            'status' => 'active',
+            'start_date' => $campaign->start_date ?? now(),
+        ]);
+
+        return redirect()->back()->with('success', "Campaign \"{$campaign->title}\" approved and published LIVE for all users!");
+    }
+
+    /**
+     * Reject a submitted business campaign.
+     */
+    public function rejectCampaign(Request $request, $id)
+    {
+        $campaign = Campaign::findOrFail($id);
+        $campaign->update([
+            'status' => 'rejected',
+        ]);
+
+        return redirect()->back()->with('success', "Campaign \"{$campaign->title}\" marked as rejected.");
     }
 
     /**

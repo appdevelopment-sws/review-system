@@ -76,10 +76,16 @@
                         </div>
                     @endif
 
-                    <!-- Active Tag / Count Badge -->
-                    <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/90 text-slate-700 shadow-xs border border-slate-200/80 backdrop-blur-md">
-                        {{ $category->campaigns_count }} {{ Str::plural('Campaign', $category->campaigns_count) }}
-                    </span>
+                    <!-- Active Tag & Standard Reward Badge -->
+                    <div class="absolute top-3 left-3 flex flex-col gap-1 z-10">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-white/95 text-slate-800 shadow-xs border border-slate-200/80 backdrop-blur-md">
+                            {{ $category->campaigns_count }} {{ Str::plural('Campaign', $category->campaigns_count) }}
+                        </span>
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 shadow-xs border border-emerald-200 backdrop-blur-md flex items-center gap-1">
+                            <span>₹{{ number_format($category->default_reward ?? 20, 2) }}</span>
+                            <span class="text-[9px] font-medium text-emerald-600">Standard</span>
+                        </span>
+                    </div>
 
                     <!-- Quick Action Buttons -->
                     <div class="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -172,11 +178,19 @@
                 @csrf
                 <div id="categoryMethodContainer"></div>
 
-                <!-- Category Name -->
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Category Name</label>
-                    <input type="text" name="name" id="formCategoryName" required placeholder="e.g. Google Reviews, App Rating, Surveys" 
-                           class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                <!-- Category Name & Standard Reward -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Category Name</label>
+                        <input type="text" name="name" id="formCategoryName" required placeholder="e.g. Google Reviews, App Rating" 
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Standard Reward (₹ / user)</label>
+                        <input type="number" step="0.5" min="0.5" name="default_reward" id="formCategoryReward" required placeholder="25.00" 
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                        <span class="text-[10px] text-slate-500 block mt-0.5">Fixed rate for participant reward</span>
+                    </div>
                 </div>
 
                 <!-- Direct Image File Upload -->
@@ -228,6 +242,7 @@
         document.getElementById('categoryMethodContainer').innerHTML = '';
         form.reset();
         
+        document.getElementById('formCategoryReward').value = '25.00';
         document.getElementById('imagePreviewContainer').classList.add('hidden');
         document.getElementById('categoryModal').classList.remove('hidden');
     }
@@ -242,6 +257,7 @@
         document.getElementById('categoryMethodContainer').innerHTML = '<input type="hidden" name="_method" value="PUT">';
 
         document.getElementById('formCategoryName').value = category.name || '';
+        document.getElementById('formCategoryReward').value = category.default_reward || 20.00;
         document.getElementById('formCategoryImageUrl').value = category.image || '';
         
         const previewContainer = document.getElementById('imagePreviewContainer');

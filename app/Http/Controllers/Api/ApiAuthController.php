@@ -20,13 +20,16 @@ class ApiAuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
+            'role' => 'nullable|string|in:user,business',
         ]);
+
+        $role = $validated['role'] ?? 'user';
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role' => 'user',
+            'role' => $role,
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

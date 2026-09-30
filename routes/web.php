@@ -33,6 +33,8 @@ Route::prefix('admin')->group(function () {
         Route::post('/campaigns', [AdminAuthController::class, 'storeCampaign'])->name('admin.campaigns.store');
         Route::put('/campaigns/{id}', [AdminAuthController::class, 'updateCampaign'])->name('admin.campaigns.update');
         Route::delete('/campaigns/{id}', [AdminAuthController::class, 'destroyCampaign'])->name('admin.campaigns.destroy');
+        Route::post('/campaigns/{id}/approve', [AdminAuthController::class, 'approveCampaign'])->name('admin.campaigns.approve');
+        Route::post('/campaigns/{id}/reject', [AdminAuthController::class, 'rejectCampaign'])->name('admin.campaigns.reject');
         Route::get('/campaigns/{id}/report', [AdminAuthController::class, 'campaignReport'])->name('admin.campaigns.report');
 
         // Conversions & Review Screenshot Submissions

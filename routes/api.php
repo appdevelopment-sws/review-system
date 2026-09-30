@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\ApiAuthController;
+use App\Http\Controllers\Api\ApiBusinessCampaignController;
 use App\Http\Controllers\Api\ApiTaskController;
 use App\Http\Controllers\Api\ApiWalletController;
 use Illuminate\Http\Request;
@@ -15,6 +16,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // User Profile
     Route::get('/user', [ApiAuthController::class, 'me']);
     Route::post('/logout', [ApiAuthController::class, 'logout']);
+
+    // Business Campaign Management Routes
+    Route::get('/business/campaigns', [ApiBusinessCampaignController::class, 'index']);
+    Route::post('/business/campaigns', [ApiBusinessCampaignController::class, 'store']);
+    Route::get('/business/campaigns/{id}', [ApiBusinessCampaignController::class, 'show']);
 
     // Categories Route
     Route::get('/categories', [ApiTaskController::class, 'categories']);

@@ -24,6 +24,7 @@ class ApiTaskController extends Controller
                 'id' => $cat->id,
                 'name' => $cat->name,
                 'image' => $cat->image,
+                'default_reward' => (float) ($cat->default_reward ?? 20.00),
                 'campaigns_count' => $cat->campaigns_count,
             ];
         });
@@ -47,6 +48,11 @@ class ApiTaskController extends Controller
         // Filter by Category
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
+        }
+
+        // Filter by Platform / Option
+        if ($request->filled('platform')) {
+            $query->where('platform', $request->platform);
         }
 
         // Search by Title
@@ -82,12 +88,18 @@ class ApiTaskController extends Controller
                 'id' => $campaign->id,
                 'title' => $campaign->title,
                 'description' => $campaign->description,
+                    'platform' => $campaign->platform ?? 'General',
+                    'instructions' => $campaign->instructions,
+                    'suggested_points' => $campaign->suggested_points,
                 'category_id' => $campaign->category_id,
                 'category' => $campaign->category ? [
                     'id' => $campaign->category->id,
                     'name' => $campaign->category->name,
                     'image' => $campaign->category->image,
                 ] : null,
+                'platform' => $campaign->platform ?? 'General',
+                'instructions' => $campaign->instructions,
+                'suggested_points' => $campaign->suggested_points,
                 'media_type' => $campaign->media_type,
                 'media_url' => $campaign->media_url,
                 'redirect_url' => $campaign->redirect_url,
@@ -100,6 +112,7 @@ class ApiTaskController extends Controller
                     'status' => $participation->status,
                     'proof_image' => $participation->proof_image,
                     'review_text' => $participation->review_text,
+                    'review_link' => $participation->review_link,
                     'reward_amount' => (float) $participation->reward_amount,
                     'admin_notes' => $participation->admin_notes,
                     'submitted_at' => $participation->submitted_at ? $participation->submitted_at->toIso8601String() : null,
@@ -158,6 +171,7 @@ class ApiTaskController extends Controller
                         'status' => $participation->status,
                         'proof_image' => $participation->proof_image,
                         'review_text' => $participation->review_text,
+                    'review_link' => $participation->review_link,
                         'reward_amount' => (float) $participation->reward_amount,
                         'admin_notes' => $participation->admin_notes,
                         'submitted_at' => $participation->submitted_at ? $participation->submitted_at->toIso8601String() : null,
@@ -191,6 +205,7 @@ class ApiTaskController extends Controller
             'proof_file' => 'nullable|file|mimes:jpeg,png,jpg,webp,gif|max:10240',
             'proof_image' => 'nullable|string|max:2000',
             'review_text' => 'nullable|string|max:1000',
+            'review_link' => 'nullable|string|max:2000',
         ]);
 
         $proofUrl = $validated['proof_image'] ?? null;
@@ -215,6 +230,7 @@ class ApiTaskController extends Controller
             [
                 'proof_image' => $proofUrl,
                 'review_text' => $validated['review_text'] ?? null,
+                'review_link' => $validated['review_link'] ?? null,
                 'status' => 'pending',
                 'reward_amount' => $campaign->reward_amount,
                 'submitted_at' => now(),
@@ -231,6 +247,7 @@ class ApiTaskController extends Controller
                     'status' => $participation->status,
                     'proof_image' => $participation->proof_image,
                     'review_text' => $participation->review_text,
+                    'review_link' => $participation->review_link,
                     'reward_amount' => (float) $participation->reward_amount,
                     'submitted_at' => $participation->submitted_at->toIso8601String(),
                 ],

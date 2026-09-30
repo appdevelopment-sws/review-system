@@ -13,6 +13,11 @@ class Category extends Model
     protected $fillable = [
         'name',
         'image',
+        'default_reward',
+    ];
+
+    protected $casts = [
+        'default_reward' => 'float',
     ];
 
     /**

@@ -28,6 +28,10 @@
                class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ !request('status') && !request('category_id') ? 'bg-indigo-50 text-indigo-600 border-indigo-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 All Campaigns ({{ $totalCampaigns }})
             </a>
+            <a href="{{ route('admin.campaigns', array_merge(request()->query(), ['status' => 'pending'])) }}" 
+               class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ request('status') === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-300' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
+                ⏳ Pending Approval ({{ $pendingCount }})
+            </a>
             <a href="{{ route('admin.campaigns', array_merge(request()->query(), ['status' => 'active'])) }}" 
                class="px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all {{ request('status') === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'text-slate-600 border-transparent hover:text-slate-900' }}">
                 Active ({{ $activeCount }})
@@ -103,10 +107,17 @@
 
                     <!-- Status & Category Badges -->
                     <div class="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10">
+                        @if($campaign->business)
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-900/90 text-indigo-100 shadow-sm border border-indigo-700/60 backdrop-blur-md flex items-center gap-1">
+                                🏢 {{ $campaign->business->name }}
+                            </span>
+                        @endif
                         <span class="px-3 py-1 rounded-full text-xs font-bold capitalize border shadow-xs backdrop-blur-md
                             {{ $campaign->status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : '' }}
                             {{ $campaign->status === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' : '' }}
                             {{ $campaign->status === 'completed' ? 'bg-blue-50 text-blue-700 border-blue-200' : '' }}
+                            {{ $campaign->status === 'pending' ? 'bg-amber-100 text-amber-800 border-amber-300' : '' }}
+                            {{ $campaign->status === 'rejected' ? 'bg-rose-100 text-rose-800 border-rose-300' : '' }}
                             {{ $campaign->status === 'draft' ? 'bg-slate-100 text-slate-700 border-slate-200' : '' }}">
                             {{ $campaign->status }}
                         </span>
@@ -149,6 +160,32 @@
 
                 <!-- Card Content -->
                 <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                    @if($campaign->status === 'pending')
+                        <div class="p-3 bg-amber-50/80 rounded-xl border border-amber-200/80">
+                            <div class="flex items-center justify-between text-xs mb-2">
+                                <span class="font-bold text-amber-900">⏳ Awaiting Bounty Bits Approval</span>
+                                @if($campaign->platform)
+                                    <span class="font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md text-[10px]">{{ $campaign->platform }}</span>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <form method="POST" action="{{ route('admin.campaigns.approve', $campaign->id) }}" class="flex-1">
+                                    @csrf
+                                    <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        <span>Approve & Go Live</span>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.campaigns.reject', $campaign->id) }}" class="flex-1" onsubmit="return confirm('Reject this campaign submission?');">
+                                    @csrf
+                                    <button type="submit" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        <span>Reject</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
                     <div>
                         <h2 class="text-base font-extrabold text-slate-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{{ $campaign->title }}</h2>
                         
