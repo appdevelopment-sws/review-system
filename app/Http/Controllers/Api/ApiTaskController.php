@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\Category;
+use App\Models\WalletTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class ApiTaskController extends Controller
@@ -83,27 +85,26 @@ class ApiTaskController extends Controller
 
         $tasks = collect($paginated->items())->map(function ($campaign) use ($userParticipations) {
             $participation = $userParticipations->get($campaign->id);
+            $points = max(10, (int) round(((float) $campaign->reward_amount) * 10));
 
             return [
                 'id' => $campaign->id,
                 'title' => $campaign->title,
                 'description' => $campaign->description,
-                    'platform' => $campaign->platform ?? 'General',
-                    'instructions' => $campaign->instructions,
-                    'suggested_points' => $campaign->suggested_points,
+                'platform' => $campaign->platform ?? 'General',
+                'instructions' => $campaign->instructions,
+                'suggested_points' => $campaign->suggested_points,
                 'category_id' => $campaign->category_id,
                 'category' => $campaign->category ? [
                     'id' => $campaign->category->id,
                     'name' => $campaign->category->name,
                     'image' => $campaign->category->image,
                 ] : null,
-                'platform' => $campaign->platform ?? 'General',
-                'instructions' => $campaign->instructions,
-                'suggested_points' => $campaign->suggested_points,
                 'media_type' => $campaign->media_type,
                 'media_url' => $campaign->media_url,
                 'redirect_url' => $campaign->redirect_url,
                 'reward_amount' => (float) $campaign->reward_amount,
+                'reward_points' => $points,
                 'participant_limit' => $campaign->participant_limit,
                 'participants_count' => $campaign->participants_count,
                 'status' => $campaign->status,
@@ -114,6 +115,10 @@ class ApiTaskController extends Controller
                     'review_text' => $participation->review_text,
                     'review_link' => $participation->review_link,
                     'reward_amount' => (float) $participation->reward_amount,
+                    'reward_points' => (int) $participation->points,
+                    'is_scratched' => (bool) $participation->is_scratched,
+                    'can_scratch' => (bool) $participation->can_scratch,
+                    'scratched_at' => $participation->scratched_at ? $participation->scratched_at->toIso8601String() : null,
                     'admin_notes' => $participation->admin_notes,
                     'submitted_at' => $participation->submitted_at ? $participation->submitted_at->toIso8601String() : null,
                 ] : null,
@@ -146,6 +151,8 @@ class ApiTaskController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
+        $points = max(10, (int) round(((float) $campaign->reward_amount) * 10));
+
         return response()->json([
             'status' => true,
             'data' => [
@@ -153,6 +160,9 @@ class ApiTaskController extends Controller
                     'id' => $campaign->id,
                     'title' => $campaign->title,
                     'description' => $campaign->description,
+                    'platform' => $campaign->platform ?? 'General',
+                    'instructions' => $campaign->instructions,
+                    'suggested_points' => $campaign->suggested_points,
                     'category_id' => $campaign->category_id,
                     'category' => $campaign->category ? [
                         'id' => $campaign->category->id,
@@ -163,6 +173,7 @@ class ApiTaskController extends Controller
                     'media_url' => $campaign->media_url,
                     'redirect_url' => $campaign->redirect_url,
                     'reward_amount' => (float) $campaign->reward_amount,
+                    'reward_points' => $points,
                     'participant_limit' => $campaign->participant_limit,
                     'participants_count' => $campaign->participants_count,
                     'status' => $campaign->status,
@@ -171,8 +182,12 @@ class ApiTaskController extends Controller
                         'status' => $participation->status,
                         'proof_image' => $participation->proof_image,
                         'review_text' => $participation->review_text,
-                    'review_link' => $participation->review_link,
+                        'review_link' => $participation->review_link,
                         'reward_amount' => (float) $participation->reward_amount,
+                        'reward_points' => (int) $participation->points,
+                        'is_scratched' => (bool) $participation->is_scratched,
+                        'can_scratch' => (bool) $participation->can_scratch,
+                        'scratched_at' => $participation->scratched_at ? $participation->scratched_at->toIso8601String() : null,
                         'admin_notes' => $participation->admin_notes,
                         'submitted_at' => $participation->submitted_at ? $participation->submitted_at->toIso8601String() : null,
                     ] : null,
@@ -197,7 +212,7 @@ class ApiTaskController extends Controller
         if ($existing && $existing->status === 'approved') {
             return response()->json([
                 'status' => false,
-                'message' => 'You have already completed this task and received your reward.',
+                'message' => 'You have already completed this task and unlocked your reward scratch card.',
             ], 400);
         }
 
@@ -222,6 +237,8 @@ class ApiTaskController extends Controller
             ], 422);
         }
 
+        $points = max(10, (int) round(((float) $campaign->reward_amount) * 10));
+
         $participation = CampaignParticipation::updateOrCreate(
             [
                 'campaign_id' => $campaign->id,
@@ -233,13 +250,15 @@ class ApiTaskController extends Controller
                 'review_link' => $validated['review_link'] ?? null,
                 'status' => 'pending',
                 'reward_amount' => $campaign->reward_amount,
+                'reward_points' => $points,
+                'is_scratched' => false,
                 'submitted_at' => now(),
             ]
         );
 
         return response()->json([
             'status' => true,
-            'message' => 'Task proof submitted successfully! Reward will be credited to your wallet once approved by admin.',
+            'message' => 'Task proof submitted successfully! Once verified & approved by admin, you will receive your Scratch Card to reveal ' . $points . ' Bounty Points.',
             'data' => [
                 'submission' => [
                     'id' => $participation->id,
@@ -249,8 +268,116 @@ class ApiTaskController extends Controller
                     'review_text' => $participation->review_text,
                     'review_link' => $participation->review_link,
                     'reward_amount' => (float) $participation->reward_amount,
+                    'reward_points' => $points,
+                    'is_scratched' => false,
+                    'can_scratch' => false,
                     'submitted_at' => $participation->submitted_at->toIso8601String(),
                 ],
+            ],
+        ]);
+    }
+
+    /**
+     * Scratch Card Flow: Task Approved -> Scratch Card -> Scratch -> Points Revealed -> Wallet Credit.
+     */
+    public function scratchCard(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Find participation for user
+        $participation = CampaignParticipation::with('campaign')
+            ->where('user_id', $user->id)
+            ->where('id', $id)
+            ->first();
+
+        if (!$participation) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Reward submission not found.',
+            ], 404);
+        }
+
+        if ($participation->status !== 'approved') {
+            return response()->json([
+                'status' => false,
+                'message' => 'Reward Scratch Card is only available after task activity is verified & approved.',
+            ], 400);
+        }
+
+        $points = (int) $participation->points;
+        $rewardAmount = (float) $participation->reward_amount;
+
+        // If already scratched, return revealed details without double-crediting
+        if ($participation->is_scratched) {
+            return response()->json([
+                'status' => true,
+                'already_scratched' => true,
+                'message' => "Scratch card already revealed! {$points} Points were credited to your wallet.",
+                'data' => [
+                    'participation_id' => $participation->id,
+                    'campaign_title' => $participation->campaign ? $participation->campaign->title : 'Task',
+                    'points_revealed' => $points,
+                    'reward_amount' => $rewardAmount,
+                    'is_scratched' => true,
+                    'scratched_at' => $participation->scratched_at ? $participation->scratched_at->toIso8601String() : null,
+                    'current_points' => (int) $user->points_balance,
+                    'current_balance' => (float) $user->wallet_balance,
+                ],
+            ]);
+        }
+
+        // Scratch Card Reveal & Wallet Credit Atomic Transaction
+        $result = DB::transaction(function () use ($user, $participation, $points, $rewardAmount) {
+            // Update participation state to scratched
+            $participation->update([
+                'is_scratched' => true,
+                'scratched_at' => now(),
+                'reward_points' => $points,
+            ]);
+
+            // Credit Points to User Wallet
+            $user->increment('points_balance', $points);
+
+            // Synchronize wallet balance currency
+            if ($rewardAmount > 0) {
+                $user->increment('wallet_balance', $rewardAmount);
+            }
+
+            // Create completed Wallet Transaction Record
+            $taskTitle = $participation->campaign ? $participation->campaign->title : 'Approved Task';
+            $transaction = WalletTransaction::create([
+                'user_id' => $user->id,
+                'type' => 'credit',
+                'amount' => $rewardAmount,
+                'points' => $points,
+                'title' => 'Scratch Card Reward: ' . $points . ' Points',
+                'description' => 'Scratched & credited ' . $points . ' Bounty Points for ' . $taskTitle . ' (Submission #' . $participation->id . ')',
+                'reference_id' => $participation->id,
+                'reference_type' => 'scratch_card',
+                'status' => 'completed',
+            ]);
+
+            return [
+                'participation' => $participation,
+                'transaction' => $transaction,
+            ];
+        });
+
+        $freshUser = $user->fresh();
+
+        return response()->json([
+            'status' => true,
+            'message' => "🎉 Congratulations! {$points} Bounty Points revealed & credited to your wallet!",
+            'data' => [
+                'participation_id' => $participation->id,
+                'campaign_title' => $participation->campaign ? $participation->campaign->title : 'Task',
+                'points_revealed' => $points,
+                'reward_amount' => $rewardAmount,
+                'is_scratched' => true,
+                'scratched_at' => $participation->scratched_at->toIso8601String(),
+                'new_points' => (int) $freshUser->points_balance,
+                'new_balance' => (float) $freshUser->wallet_balance,
+                'transaction_id' => $result['transaction']->id,
             ],
         ]);
     }
@@ -272,6 +399,8 @@ class ApiTaskController extends Controller
         $paginated = $query->latest('submitted_at')->paginate($perPage);
 
         $submissions = collect($paginated->items())->map(function ($item) {
+            $points = (int) $item->points;
+
             return [
                 'id' => $item->id,
                 'campaign_id' => $item->campaign_id,
@@ -281,6 +410,10 @@ class ApiTaskController extends Controller
                 'proof_image' => $item->proof_image,
                 'review_text' => $item->review_text,
                 'reward_amount' => (float) $item->reward_amount,
+                'reward_points' => $points,
+                'is_scratched' => (bool) $item->is_scratched,
+                'can_scratch' => (bool) $item->can_scratch,
+                'scratched_at' => $item->scratched_at ? $item->scratched_at->toIso8601String() : null,
                 'admin_notes' => $item->admin_notes,
                 'submitted_at' => $item->submitted_at ? $item->submitted_at->toIso8601String() : $item->created_at->toIso8601String(),
             ];

@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'role', 'wallet_balance'])]
+#[Fillable(['name', 'email', 'password', 'role', 'wallet_balance', 'points_balance'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -35,8 +35,13 @@ class User extends Authenticatable
     }
 
     /**
-     * Get campaigns created by this business user.
+     * Get available points for user.
      */
+    public function getAvailablePointsAttribute(): int
+    {
+        return (int) ($this->points_balance ?? round($this->wallet_balance * 10));
+    }
+
     /**
      * Get campaigns created by this user / business.
      */
@@ -101,6 +106,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'wallet_balance' => 'decimal:2',
+            'points_balance' => 'integer',
         ];
     }
 }

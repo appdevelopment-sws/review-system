@@ -142,9 +142,10 @@
                                 @endif
                             </td>
 
-                            <!-- Amount Column -->
+                            <!-- Amount & Points Column -->
                             <td class="px-6 py-4">
-                                <span class="font-extrabold text-slate-900 text-base">₹{{ number_format($item->amount, 2) }}</span>
+                                <span class="font-black text-indigo-600 text-base">{{ number_format($item->redeemed_points ?: round($item->amount * 10)) }} Pts</span>
+                                <div class="text-xs text-slate-500 font-bold">₹{{ number_format($item->amount, 2) }}</div>
                             </td>
 
                             <!-- Method Badge -->
@@ -156,17 +157,25 @@
                                         </svg>
                                         UPI
                                     </span>
-                                @else
+                                @elseif($item->payout_type === 'bank')
                                     <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
                                         </svg>
                                         Bank Transfer
                                     </span>
+                                @elseif($item->payout_type === 'gift_card')
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        🎁 Gift Card ({{ $item->gift_card_brand ?? 'Amazon' }})
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        ⚡ Other Option
+                                    </span>
                                 @endif
                             </td>
 
-                            <!-- Bank / UPI Details Snippet with 1-click Copy -->
+                            <!-- Bank / UPI / Gift Card / Other Details Snippet with 1-click Copy -->
                             <td class="px-6 py-4 max-w-xs">
                                 @if($item->payout_type === 'upi')
                                     <div class="flex items-center gap-2">
@@ -182,7 +191,7 @@
                                     @if($item->account_holder_name)
                                         <div class="text-[11px] text-slate-500 mt-0.5">Holder: {{ $item->account_holder_name }}</div>
                                     @endif
-                                @else
+                                @elseif($item->payout_type === 'bank')
                                     <div class="flex items-center gap-2">
                                         <span class="font-mono text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">A/C: {{ $item->account_number ?? 'N/A' }}</span>
                                         @if($item->account_number)
@@ -196,6 +205,20 @@
                                     <div class="text-[11px] text-slate-500 mt-0.5">
                                         {{ $item->bank_name ?? 'Bank' }} &bull; IFSC: <span class="font-mono">{{ $item->ifsc_code ?? 'N/A' }}</span>
                                     </div>
+                                @elseif($item->payout_type === 'gift_card')
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-mono text-xs font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">{{ $item->gift_card_email ?? 'N/A' }}</span>
+                                        @if($item->gift_card_email)
+                                            <button type="button" onclick="copyText('{{ $item->gift_card_email }}')" title="Copy Delivery Address" class="text-slate-400 hover:text-amber-600 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                            </button>
+                                        @endif
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 mt-0.5">Brand: <span class="font-bold text-slate-700">{{ $item->gift_card_brand ?? 'Amazon Pay' }}</span></div>
+                                @else
+                                    <div class="text-xs font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">{{ $item->other_details ?? 'N/A' }}</div>
                                 @endif
                             </td>
 

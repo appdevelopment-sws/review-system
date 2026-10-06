@@ -14,7 +14,11 @@ class WithdrawalRequest extends Model
     protected $fillable = [
         'user_id',
         'amount',
+        'redeemed_points',
         'payout_type',
+        'gift_card_brand',
+        'gift_card_email',
+        'other_details',
         'account_holder_name',
         'upi_id',
         'bank_name',
@@ -31,6 +35,7 @@ class WithdrawalRequest extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'redeemed_points' => 'integer',
             'processed_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -63,6 +68,18 @@ class WithdrawalRequest extends Model
             return 'UPI: ' . ($this->upi_id ?? 'N/A') . ($this->account_holder_name ? ' (' . $this->account_holder_name . ')' : '');
         }
 
-        return 'Bank: ' . ($this->bank_name ? $this->bank_name . ' - ' : '') . 'A/C: ' . ($this->account_number ?? 'N/A') . ($this->ifsc_code ? ' [IFSC: ' . $this->ifsc_code . ']' : '');
+        if ($this->payout_type === 'bank') {
+            return 'Bank: ' . ($this->bank_name ? $this->bank_name . ' - ' : '') . 'A/C: ' . ($this->account_number ?? 'N/A') . ($this->ifsc_code ? ' [IFSC: ' . $this->ifsc_code . ']' : '');
+        }
+
+        if ($this->payout_type === 'gift_card') {
+            return 'Gift Card (' . ($this->gift_card_brand ?? 'Amazon/Brand') . ') ➔ ' . ($this->gift_card_email ?? 'User Delivery');
+        }
+
+        if ($this->payout_type === 'other') {
+            return 'Other Option: ' . ($this->other_details ?? 'Supported Payout / Recharge');
+        }
+
+        return strtoupper($this->payout_type);
     }
 }

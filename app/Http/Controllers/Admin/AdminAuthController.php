@@ -499,49 +499,45 @@ class AdminAuthController extends Controller
             $user = $participation->user;
             $rewardAmount = (float) $participation->reward_amount;
 
-            // Adjust campaign participants count and user wallet when approved
+            // Adjust campaign participants count and scratch card unlocking when approved
             if ($oldStatus !== 'approved' && $newStatus === 'approved') {
                 if ($campaign) {
                     $campaign->increment('participants_count');
                 }
-                if ($user && $rewardAmount > 0) {
-                    $user->increment('wallet_balance', $rewardAmount);
-
-                    // Create Wallet Transaction Record
-                    WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'credit',
-                        'amount' => $rewardAmount,
-                        'title' => 'Task Reward: ' . ($campaign->title ?? 'Task Completed'),
-                        'description' => 'Approved task reward for submission #' . $participation->id,
-                        'reference_id' => $participation->id,
-                        'reference_type' => 'campaign_participation',
-                        'status' => 'completed',
-                    ]);
-                }
+                $points = $participation->reward_points > 0 ? (int) $participation->reward_points : max(10, (int) round($rewardAmount * 10));
+                $participation->update([
+                    'reward_points' => $points,
+                    'is_scratched' => false, // Task Approved -> Scratch Card -> Scratch -> Points Revealed -> Wallet Credit
+                ]);
             } elseif ($oldStatus === 'approved' && $newStatus !== 'approved') {
                 if ($campaign) {
                     $campaign->decrement('participants_count');
                 }
-                if ($user && $rewardAmount > 0) {
-                    $user->decrement('wallet_balance', min($user->wallet_balance, $rewardAmount));
+                if ($participation->is_scratched) {
+                    $points = (int) $participation->points;
+                    if ($user && $rewardAmount > 0) {
+                        $user->decrement('wallet_balance', min($user->wallet_balance, $rewardAmount));
+                        $user->decrement('points_balance', min($user->points_balance, $points));
 
-                    // Create Reversal Transaction Record
-                    WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'debit',
-                        'amount' => $rewardAmount,
-                        'title' => 'Reversal: ' . ($campaign->title ?? 'Task Reverted'),
-                        'description' => 'Submission #' . $participation->id . ' status changed to ' . $newStatus,
-                        'reference_id' => $participation->id,
-                        'reference_type' => 'campaign_participation',
-                        'status' => 'completed',
-                    ]);
+                        // Create Reversal Transaction Record
+                        WalletTransaction::create([
+                            'user_id' => $user->id,
+                            'type' => 'debit',
+                            'amount' => $rewardAmount,
+                            'points' => $points,
+                            'title' => 'Reversal: ' . ($campaign->title ?? 'Task Reverted'),
+                            'description' => 'Submission #' . $participation->id . ' status changed to ' . $newStatus,
+                            'reference_id' => $participation->id,
+                            'reference_type' => 'campaign_participation',
+                            'status' => 'completed',
+                        ]);
+                    }
+                    $participation->update(['is_scratched' => false]);
                 }
             }
         });
 
-        return back()->with('success', 'Submission status updated to ' . ucfirst($newStatus) . ' successfully! Wallet balance updated.');
+        return back()->with('success', 'Submission status updated to ' . ucfirst($newStatus) . ' successfully! ' . ($newStatus === 'approved' ? 'Scratch card unlocked for user to scratch & claim points.' : ''));
     }
 
     /**
@@ -687,10 +683,12 @@ class AdminAuthController extends Controller
             } elseif ($newStatus === 'rejected') {
                 $withdrawal->update($updateData);
 
-                // Refund the amount back to user's wallet
+                // Refund the amount & points back to user's wallet
                 $user = $withdrawal->user;
+                $points = (int) ($withdrawal->redeemed_points ?: round($withdrawal->amount * 10));
                 if ($user) {
                     $user->increment('wallet_balance', (float) $withdrawal->amount);
+                    $user->increment('points_balance', $points);
                 }
 
                 // Update corresponding WalletTransaction to rejected

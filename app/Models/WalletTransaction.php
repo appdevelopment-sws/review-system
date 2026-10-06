@@ -14,6 +14,7 @@ class WalletTransaction extends Model
         'user_id',
         'type',
         'amount',
+        'points',
         'title',
         'description',
         'reference_id',
@@ -25,9 +26,18 @@ class WalletTransaction extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'points' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Display points for this transaction (fallback to amount * 10 if points is 0).
+     */
+    public function getDisplayPointsAttribute(): int
+    {
+        return $this->points > 0 ? (int) $this->points : (int) round($this->amount * 10);
     }
 
     /**

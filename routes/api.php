@@ -31,7 +31,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tasks/{id}/submit', [ApiTaskController::class, 'submit']);
     Route::get('/my-tasks', [ApiTaskController::class, 'myTasks']);
 
-    // Wallet & Withdrawal Routes
+    // Scratch Card Reward / Benefit Flow (Task Approved -> Scratch Card -> Scratch -> Points Revealed -> Wallet Credit)
+    Route::post('/tasks/{id}/scratch', [ApiTaskController::class, 'scratchCard']);
+    Route::get('/wallet/scratch-cards', [ApiWalletController::class, 'scratchCards']);
+
+    // Wallet & Withdrawal Routes (Available, Pending, Earned, Used/Withdrawn Points + UPI, Bank, Gift Cards, Other)
     Route::get('/wallet', [ApiWalletController::class, 'index']);
     Route::post('/wallet/withdraw', [ApiWalletController::class, 'withdraw']);
     Route::get('/wallet/withdrawals', [ApiWalletController::class, 'withdrawals']);

@@ -18,6 +18,9 @@ class CampaignParticipation extends Model
         'review_link',
         'status',
         'reward_amount',
+        'reward_points',
+        'is_scratched',
+        'scratched_at',
         'admin_notes',
         'submitted_at',
     ];
@@ -26,8 +29,29 @@ class CampaignParticipation extends Model
     {
         return [
             'reward_amount' => 'decimal:2',
+            'reward_points' => 'integer',
+            'is_scratched' => 'boolean',
+            'scratched_at' => 'datetime',
             'submitted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get calculated or stored points for this task reward.
+     */
+    public function getPointsAttribute(): int
+    {
+        return $this->reward_points > 0
+            ? (int) $this->reward_points
+            : max(10, (int) round($this->reward_amount * 10));
+    }
+
+    /**
+     * Check if user can scratch this card (task approved and not yet scratched).
+     */
+    public function getCanScratchAttribute(): bool
+    {
+        return $this->status === 'approved' && !$this->is_scratched;
     }
 
     /**

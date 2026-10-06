@@ -120,9 +120,10 @@
                                 @endif
                             </td>
 
-                            <!-- Reward Amount -->
+                            <!-- Reward Points & Amount -->
                             <td class="px-6 py-4">
-                                <span class="font-extrabold text-emerald-600 text-base">₹{{ number_format($item->reward_amount, 2) }}</span>
+                                <span class="font-black text-indigo-600 text-base">{{ number_format($item->points) }} Pts</span>
+                                <div class="text-xs text-slate-500 font-bold">₹{{ number_format($item->reward_amount, 2) }}</div>
                             </td>
 
                             <!-- Status Badge -->
