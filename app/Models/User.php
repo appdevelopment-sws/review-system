@@ -21,6 +21,22 @@ class User extends Authenticatable
     /**
      * Check if user has admin role.
      */
+    /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            \App\Models\BountyAiProfile::where('user_id', $user->id)
+                ->orWhere(function ($q) use ($user) {
+                    if (!empty($user->email)) {
+                        $q->where('email', $user->email);
+                    }
+                })
+                ->delete();
+        });
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';

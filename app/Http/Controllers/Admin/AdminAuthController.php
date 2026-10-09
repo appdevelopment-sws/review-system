@@ -271,6 +271,15 @@ class AdminAuthController extends Controller
                 DB::table('password_reset_tokens')->where('email', $user->email)->delete();
             } catch (\Throwable $e) {}
 
+            // Delete associated Bounty AI business profile(s) for this user/business
+            \App\Models\BountyAiProfile::where('user_id', $user->id)
+                ->orWhere(function ($q) use ($user) {
+                    if (!empty($user->email)) {
+                        $q->where('email', $user->email);
+                    }
+                })
+                ->delete();
+
             // Delete the user record
             $user->delete();
         });

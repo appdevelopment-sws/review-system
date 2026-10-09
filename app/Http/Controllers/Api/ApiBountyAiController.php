@@ -105,6 +105,40 @@ class ApiBountyAiController extends Controller
 
         $profile = BountyAiProfile::where('user_id', $userId)->first();
 
+        if ($profile && empty($profile->email) && $userId) {
+            $user = User::find($userId);
+            if ($user && !empty($user->email)) {
+                $profile->email = $user->email;
+            }
+        } elseif (!$profile && $userId) {
+            $user = User::find($userId);
+            if ($user) {
+                return response()->json([
+                    'status' => true,
+                    'data' => [
+                        'profile' => [
+                            'user_id' => $user->id,
+                            'business_name' => $user->name,
+                            'email' => $user->email,
+                            'phone_number' => '+91 98765 43210',
+                            'website' => 'https://www.yourbusiness.com',
+                            'address' => '123, Boring Road Market',
+                            'city' => 'Patna',
+                            'state' => 'Bihar',
+                            'pincode' => '800001',
+                            'business_type' => 'Retail Store',
+                            'working_days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                            'opening_time' => '09:00 AM',
+                            'closing_time' => '09:00 PM',
+                            'is_24_hours' => false,
+                            'onboarding_status' => 'in_progress',
+                            'current_step' => 1,
+                        ],
+                    ],
+                ]);
+            }
+        }
+
         return response()->json([
             'status' => true,
             'data' => [
@@ -145,6 +179,12 @@ class ApiBountyAiController extends Controller
         $profile->business_name = $validated['business_name'];
         if (isset($validated['selected_goals'])) {
             $profile->selected_goals = $validated['selected_goals'];
+        }
+        if ($userId && empty($profile->email)) {
+            $user = User::find($userId);
+            if ($user && !empty($user->email)) {
+                $profile->email = $user->email;
+            }
         }
         $profile->current_step = max(1, (int) $profile->current_step);
         if ($profile->onboarding_status !== 'completed') {
@@ -204,10 +244,12 @@ class ApiBountyAiController extends Controller
             $profile->user_id = $userId;
         }
 
+        $user = $userId ? User::find($userId) : null;
+
         if (!empty($validated['business_name'])) {
             $profile->business_name = $validated['business_name'];
         } elseif (empty($profile->business_name)) {
-            $profile->business_name = 'My Business';
+            $profile->business_name = ($user && !empty($user->name)) ? $user->name : 'My Business';
         }
 
         if (isset($validated['selected_goals']) && !empty($validated['selected_goals'])) {
@@ -215,7 +257,14 @@ class ApiBountyAiController extends Controller
         }
 
         $profile->phone_number = $validated['phone_number'];
-        $profile->email = $validated['email'] ?? null;
+        $submittedEmail = $validated['email'] ?? null;
+        if (!empty($submittedEmail) && $submittedEmail !== 'business@example.com') {
+            $profile->email = $submittedEmail;
+        } elseif ($user && !empty($user->email)) {
+            $profile->email = $user->email;
+        } else {
+            $profile->email = $submittedEmail;
+        }
         $profile->website = $validated['website'] ?? null;
         $profile->address = $validated['address'];
         $profile->city = $validated['city'];
