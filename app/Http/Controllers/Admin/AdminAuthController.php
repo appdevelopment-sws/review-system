@@ -208,6 +208,73 @@ class AdminAuthController extends Controller
     }
 
     /**
+     * Delete a user or business account permanently.
+     */
+    public function destroyUser(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        // Security check: Admin cannot delete their own account
+        if (Auth::id() == $user->id) {
+            return redirect()->back()->with('error', 'You cannot delete your own logged-in admin account.');
+        }
+
+        // Security check: Prevent deleting the only remaining admin
+        if ($user->isAdmin() && User::where('role', 'admin')->count() <= 1) {
+            return redirect()->back()->with('error', 'Cannot delete the only remaining administrator account.');
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+        $roleLabel = match ($user->role) {
+            'business' => 'Business account',
+            'admin' => 'Admin account',
+            default => 'Earner user account',
+        };
+
+        DB::transaction(function () use ($user) {
+            // If the account has created campaigns (e.g. Business), delete campaigns & their participations
+            if ($user->campaigns()->exists()) {
+                foreach ($user->campaigns as $campaign) {
+                    $campaign->delete();
+                }
+            }
+
+            // Remove participations/submissions made by this user
+            $user->participations()->delete();
+
+            // Remove wallet transactions
+            $user->walletTransactions()->delete();
+
+            // Remove withdrawal requests
+            $user->withdrawalRequests()->delete();
+
+            // Remove payout bank/upi details
+            $user->payoutDetails()->delete();
+
+            // Revoke Sanctum API tokens
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+
+            // Invalidate user web sessions
+            try {
+                DB::table('sessions')->where('user_id', $user->id)->delete();
+            } catch (\Throwable $e) {}
+
+            // Delete password reset tokens
+            try {
+                DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+            } catch (\Throwable $e) {}
+
+            // Delete the user record
+            $user->delete();
+        });
+
+        return redirect()->route('admin.users')->with('success', "{$roleLabel} \"{$userName}\" ({$userEmail}) has been deleted successfully.");
+    }
+
+    /**
      * Display the Categories management page.
      */
     public function categories(Request $request)

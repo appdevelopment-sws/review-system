@@ -21,6 +21,7 @@ Route::prefix('admin')->group(function () {
         Route::get('/dashboard', [AdminAuthController::class, 'dashboard'])->name('admin.dashboard');
         Route::get('/users', [AdminAuthController::class, 'users'])->name('admin.users');
         Route::get('/users/{id}', [AdminAuthController::class, 'showUser'])->name('admin.users.show');
+        Route::delete('/users/{id}', [AdminAuthController::class, 'destroyUser'])->name('admin.users.destroy');
         
         // Categories Management
         Route::get('/categories', [AdminAuthController::class, 'categories'])->name('admin.categories');

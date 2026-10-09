@@ -174,13 +174,32 @@
                                 {{ $user->created_at ? $user->created_at->format('M d, Y') : 'N/A' }}
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.users.show', $user->id) }}" 
-                                   class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 transition-all shadow-xs">
-                                    <span>View Details</span>
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </a>
+                                <div class="inline-flex items-center gap-2 justify-end">
+                                    <a href="{{ route('admin.users.show', $user->id) }}" 
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 transition-all shadow-xs"
+                                       title="View Profile Details">
+                                        <span>View</span>
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </a>
+
+                                    @if(Auth::id() !== $user->id)
+                                        <button type="button" 
+                                                onclick="openDeleteUserModal('{{ $user->id }}', @js($user->name), @js($user->email), '{{ $user->role }}', {{ $user->role === 'business' ? ($user->created_campaigns_count ?? 0) : ($user->total_participations_count ?? 0) }})"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white border border-rose-200 transition-all shadow-xs cursor-pointer"
+                                                title="Delete {{ $user->role === 'business' ? 'Business' : ($user->role === 'admin' ? 'Admin' : 'User') }} Account">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            <span>Delete</span>
+                                        </button>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold text-slate-400 bg-slate-100 border border-slate-200" title="Your logged-in account cannot be deleted">
+                                            You
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -202,4 +221,118 @@
         @endif
     </div>
 </div>
+
+<!-- DELETE ACCOUNT CONFIRMATION MODAL -->
+<div id="deleteUserModal" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm hidden" onclick="if(event.target === this) closeDeleteUserModal()">
+    <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
+        <div class="bg-white border border-slate-200/90 rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-8 relative my-8" onclick="event.stopPropagation()">
+            <!-- Close Button -->
+            <button type="button" onclick="closeDeleteUserModal()" class="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Danger Icon Header -->
+            <div class="flex items-center gap-3.5 mb-5">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0 shadow-xs">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="deleteModalTitle" class="text-lg font-extrabold text-slate-900 leading-tight">Delete Account</h3>
+                    <p class="text-xs text-rose-600 font-semibold mt-0.5">Permanent & Irreversible Action</p>
+                </div>
+            </div>
+
+            <!-- Target User Details Box -->
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 mb-5 space-y-2.5">
+                <div class="flex items-center gap-3">
+                    <div id="deleteModalAvatar" class="w-10 h-10 rounded-full bg-slate-200 border border-slate-300 flex items-center justify-center font-bold text-sm text-slate-700 shrink-0">
+                        U
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div id="deleteModalUserName" class="text-sm font-extrabold text-slate-900 truncate">User Name</div>
+                        <div id="deleteModalUserEmail" class="text-xs text-slate-500 truncate">email@example.com</div>
+                    </div>
+                    <span id="deleteModalRoleBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase shrink-0">
+                        User
+                    </span>
+                </div>
+                <div id="deleteModalWarningNotice" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/70 leading-relaxed">
+                    <!-- Dynamic text inserted here -->
+                </div>
+            </div>
+
+            <!-- Confirmation Form -->
+            <form id="deleteUserForm" method="POST" action="" class="space-y-3">
+                @csrf
+                @method('DELETE')
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeDeleteUserModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" id="deleteSubmitBtn" class="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Yes, Permanently Delete</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    function openDeleteUserModal(id, name, email, role, count) {
+        const form = document.getElementById('deleteUserForm');
+        form.action = "{{ url('/admin/users') }}/" + id;
+
+        const roleText = role === 'business' ? 'Business Account' : (role === 'admin' ? 'Admin Account' : 'Earner / User Account');
+        document.getElementById('deleteModalTitle').innerText = 'Delete ' + roleText;
+        document.getElementById('deleteModalUserName').innerText = name;
+        document.getElementById('deleteModalUserEmail').innerText = email;
+
+        const avatar = document.getElementById('deleteModalAvatar');
+        const roleBadge = document.getElementById('deleteModalRoleBadge');
+        const warning = document.getElementById('deleteModalWarningNotice');
+
+        if (role === 'business') {
+            avatar.className = 'w-10 h-10 rounded-full bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center font-bold text-sm shrink-0';
+            avatar.innerText = '🏢';
+            roleBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold border bg-amber-50 text-amber-800 border-amber-200 uppercase shrink-0';
+            roleBadge.innerText = 'Business';
+            warning.innerHTML = '⚠️ <strong>Warning:</strong> Deleting this business will permanently remove all <strong>' + count + ' posted campaign(s)</strong>, participations, and recorded proofs. This cannot be undone.';
+        } else if (role === 'admin') {
+            avatar.className = 'w-10 h-10 rounded-full bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center font-bold text-sm shrink-0';
+            avatar.innerText = '🛡️';
+            roleBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold border bg-purple-50 text-purple-700 border-purple-200 uppercase shrink-0';
+            roleBadge.innerText = 'Admin';
+            warning.innerHTML = '⚠️ <strong>Warning:</strong> Deleting this admin account will immediately revoke all administrative access permissions.';
+        } else {
+            avatar.className = 'w-10 h-10 rounded-full bg-indigo-100 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0';
+            avatar.innerText = name ? name.charAt(0).toUpperCase() : 'U';
+            roleBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-50 text-emerald-800 border-emerald-200 uppercase shrink-0';
+            roleBadge.innerText = 'Earner';
+            warning.innerHTML = '⚠️ <strong>Warning:</strong> Deleting this earner user will permanently remove their <strong>' + count + ' task participation(s)</strong>, wallet balance, withdrawal history, and payout accounts.';
+        }
+
+        document.getElementById('deleteUserModal').classList.remove('hidden');
+    }
+
+    function closeDeleteUserModal() {
+        document.getElementById('deleteUserModal').classList.add('hidden');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeDeleteUserModal();
+        }
+    });
+</script>
 @endsection
