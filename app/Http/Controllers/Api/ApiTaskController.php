@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignParticipation;
 use App\Models\Category;
+use App\Models\MarketingGoal;
 use App\Models\WalletTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,33 @@ class ApiTaskController extends Controller
     /**
      * Get list of all categories with active campaigns count.
      */
+    /**
+     * Get list of active marketing/growth goals for onboarding.
+     */
+    public function marketingGoals(Request $request): JsonResponse
+    {
+        $goals = MarketingGoal::active()->ordered()->get()->map(function ($goal) {
+            return [
+                'id' => $goal->slug,
+                'db_id' => $goal->id,
+                'title' => $goal->title,
+                'description' => $goal->description ?? '',
+                'icon' => $goal->icon,
+                'icon_bg_color' => $goal->icon_bg_color,
+                'icon_color' => $goal->icon_color,
+                'badge_text' => $goal->badge_text,
+                'is_instagram' => (bool) $goal->is_instagram,
+                'sort_order' => (int) $goal->sort_order,
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'goals' => $goals,
+            ],
+        ]);
+    }
     public function categories(Request $request): JsonResponse
     {
         $categories = Category::withCount(['campaigns' => function ($q) {

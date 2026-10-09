@@ -9,6 +9,8 @@ use App\Models\Category;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
+use App\Models\MarketingGoal;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -804,5 +806,141 @@ class AdminAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('admin.login')->with('success', 'You have been logged out successfully.');
+    }
+
+    /**
+     * Display Marketing / Growth Goals management list.
+     */
+    public function marketingGoals(Request $request)
+    {
+        $query = MarketingGoal::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        $goals = $query->ordered()->paginate(15)->withQueryString();
+        $totalGoals = MarketingGoal::count();
+        $activeGoals = MarketingGoal::where('is_active', true)->count();
+        $inactiveGoals = MarketingGoal::where('is_active', false)->count();
+
+        return view('admin.marketing_goals.index', compact(
+            'goals',
+            'totalGoals',
+            'activeGoals',
+            'inactiveGoals'
+        ));
+    }
+
+    /**
+     * Store a newly created Marketing Goal.
+     */
+    public function storeMarketingGoal(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:100|unique:marketing_goals,slug',
+            'description' => 'nullable|string|max:1000',
+            'icon' => 'required|string|max:50',
+            'icon_bg_color' => 'nullable|string|max:20',
+            'icon_color' => 'nullable|string|max:20',
+            'badge_text' => 'nullable|string|max:50',
+            'is_instagram' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $slug = !empty($validated['slug']) 
+            ? Str::slug($validated['slug']) 
+            : Str::slug($validated['title']);
+
+        // Check if slug exists, append number if needed
+        $originalSlug = $slug;
+        $counter = 1;
+        while (MarketingGoal::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        MarketingGoal::create([
+            'title' => $validated['title'],
+            'slug' => $slug,
+            'description' => $validated['description'] ?? null,
+            'icon' => $validated['icon'],
+            'icon_bg_color' => $validated['icon_bg_color'] ?? '#EEF2FF',
+            'icon_color' => $validated['icon_color'] ?? '#3B82F6',
+            'badge_text' => $validated['badge_text'] ?? null,
+            'is_instagram' => $request->boolean('is_instagram'),
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : true,
+        ]);
+
+        return redirect()->route('admin.marketing-goals')->with('success', 'Marketing goal added successfully!');
+    }
+
+    /**
+     * Update an existing Marketing Goal.
+     */
+    public function updateMarketingGoal(Request $request, $id)
+    {
+        $goal = MarketingGoal::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'slug' => 'required|string|max:100|unique:marketing_goals,slug,' . $goal->id,
+            'description' => 'nullable|string|max:1000',
+            'icon' => 'required|string|max:50',
+            'icon_bg_color' => 'nullable|string|max:20',
+            'icon_color' => 'nullable|string|max:20',
+            'badge_text' => 'nullable|string|max:50',
+            'is_instagram' => 'nullable|boolean',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $goal->update([
+            'title' => $validated['title'],
+            'slug' => Str::slug($validated['slug']),
+            'description' => $validated['description'] ?? null,
+            'icon' => $validated['icon'],
+            'icon_bg_color' => $validated['icon_bg_color'] ?? '#EEF2FF',
+            'icon_color' => $validated['icon_color'] ?? '#3B82F6',
+            'badge_text' => $validated['badge_text'] ?? null,
+            'is_instagram' => $request->boolean('is_instagram'),
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : false,
+        ]);
+
+        return redirect()->route('admin.marketing-goals')->with('success', 'Marketing goal updated successfully!');
+    }
+
+    /**
+     * Toggle active/inactive status of a Marketing Goal.
+     */
+    public function toggleMarketingGoalStatus($id)
+    {
+        $goal = MarketingGoal::findOrFail($id);
+        $goal->is_active = !$goal->is_active;
+        $goal->save();
+
+        $statusStr = $goal->is_active ? 'activated' : 'deactivated';
+        return back()->with('success', "Goal '{$goal->title}' {$statusStr} successfully!");
+    }
+
+    /**
+     * Delete a Marketing Goal.
+     */
+    public function destroyMarketingGoal($id)
+    {
+        $goal = MarketingGoal::findOrFail($id);
+        $goalTitle = $goal->title;
+        $goal->delete();
+
+        return redirect()->route('admin.marketing-goals')->with('success', "Goal '{$goalTitle}' deleted successfully!");
     }
 }

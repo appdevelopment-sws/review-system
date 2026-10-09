@@ -46,6 +46,13 @@ Route::prefix('admin')->group(function () {
         Route::get('/withdrawals', [AdminAuthController::class, 'withdrawals'])->name('admin.withdrawals');
         Route::post('/withdrawals/{id}/status', [AdminAuthController::class, 'updateWithdrawalStatus'])->name('admin.withdrawals.status');
 
+        // Marketing & Growth Goals (What are you looking to achieve?)
+        Route::get('/marketing-goals', [AdminAuthController::class, 'marketingGoals'])->name('admin.marketing-goals');
+        Route::post('/marketing-goals', [AdminAuthController::class, 'storeMarketingGoal'])->name('admin.marketing-goals.store');
+        Route::put('/marketing-goals/{id}', [AdminAuthController::class, 'updateMarketingGoal'])->name('admin.marketing-goals.update');
+        Route::post('/marketing-goals/{id}/toggle', [AdminAuthController::class, 'toggleMarketingGoalStatus'])->name('admin.marketing-goals.toggle');
+        Route::delete('/marketing-goals/{id}', [AdminAuthController::class, 'destroyMarketingGoal'])->name('admin.marketing-goals.destroy');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/', function () {

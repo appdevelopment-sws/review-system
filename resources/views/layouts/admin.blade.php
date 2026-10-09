@@ -173,6 +173,23 @@
                 @endif
             </a>
 
+            <!-- Growth / Marketing Goals Link -->
+            <a href="{{ route('admin.marketing-goals') }}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 border {{ request()->routeIs('admin.marketing-goals*') ? 'bg-indigo-50 text-indigo-600 border-indigo-200/80 font-semibold shadow-xs' : 'text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900' }}">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 {{ request()->routeIs('admin.marketing-goals*') ? 'text-indigo-600' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Growth Goals</span>
+                </div>
+                @php
+                    $goalsCountBadge = \App\Models\MarketingGoal::count();
+                @endphp
+                @if($goalsCountBadge > 0)
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">{{ $goalsCountBadge }}</span>
+                @endif
+            </a>
+
             <!-- Withdrawal Requests Link -->
             <a href="{{ route('admin.withdrawals') }}" 
                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 border {{ request()->routeIs('admin.withdrawals*') ? 'bg-indigo-50 text-indigo-600 border-indigo-200/80 font-semibold shadow-xs' : 'text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900' }}">

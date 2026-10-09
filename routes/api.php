@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 // Public Authentication Routes
 Route::post('/register', [ApiAuthController::class, 'register']);
 Route::post('/login', [ApiAuthController::class, 'login']);
+Route::get('/marketing-goals', [ApiTaskController::class, 'marketingGoals']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
