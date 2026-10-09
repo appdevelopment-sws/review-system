@@ -251,10 +251,24 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                             </svg>
                                             <span>{{ $profile->city }}, {{ $profile->state }}</span>
+                                        @elseif($profile->address)
+                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            </svg>
+                                            <span class="truncate max-w-[140px]" title="{{ $profile->address }}">{{ $profile->address }}</span>
                                         @else
                                             <span class="text-slate-400 italic text-[11px]">Pending Step 2</span>
                                         @endif
                                     </div>
+                                    @if($profile->latitude && $profile->longitude)
+                                        <a href="https://www.google.com/maps?q={{ $profile->latitude }},{{ $profile->longitude }}" target="_blank" class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition-colors shadow-2xs">
+                                            <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                                            <span>GPS: {{ number_format($profile->latitude, 3) }}, {{ number_format($profile->longitude, 3) }}</span>
+                                            @if($profile->is_gps_detected)
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Auto GPS Detected"></span>
+                                            @endif
+                                        </a>
+                                    @endif
                                 </div>
                             </td>
                             <!-- Contact Info -->
@@ -450,6 +464,47 @@
                 </div>
             </div>
 
+            <!-- Section 3.5: Step 4 Storefront Map & GPS Location -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">4</span>
+                        <h4 class="font-extrabold text-sm text-slate-900 uppercase tracking-wider">Step 4: Storefront Map & GPS Coordinates</h4>
+                    </div>
+                    <div id="modalGpsDetectedBadge"></div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3 text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="md:col-span-2">
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Confirmed Storefront Address</span>
+                            <span id="modalLocationAddress" class="font-bold text-slate-800 text-sm mt-0.5 block">—</span>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Landmark (Optional)</span>
+                            <span id="modalLandmark" class="font-semibold text-slate-700 text-sm mt-0.5 block">—</span>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Pincode</span>
+                            <span id="modalLocationPincode" class="font-bold text-slate-800 text-sm mt-0.5 block">—</span>
+                        </div>
+                        <div class="md:col-span-2">
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Exact Coordinates (Lat, Long)</span>
+                            <span id="modalCoords" class="font-mono font-bold text-slate-800 text-sm mt-0.5 block">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Map Action Button -->
+                    <div id="modalMapActionContainer" class="pt-2 border-t border-slate-200/70 flex items-center justify-between">
+                        <span class="text-[11px] text-slate-500">Live coordinates on Google Maps</span>
+                        <a id="modalMapLink" href="#" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            <span>Open in Google Maps</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Section 4: Associated User Account -->
             <div id="modalUserSection" class="p-4 bg-indigo-50/60 rounded-xl border border-indigo-100 text-xs">
                 <span class="text-indigo-900 font-extrabold uppercase text-[10px] block mb-1">Linked App Account</span>
@@ -520,6 +575,40 @@
         document.getElementById('modalAddress').textContent = profile.address || 'â€”';
         document.getElementById('modalCityState').textContent = (profile.city ? profile.city + ', ' : '') + (profile.state || 'â€”');
         document.getElementById('modalPincode').textContent = profile.pincode || 'â€”';
+        // Step 4 Location
+        const locAddrEl = document.getElementById('modalLocationAddress');
+        if (locAddrEl) locAddrEl.textContent = profile.address || '—';
+
+        const landmarkEl = document.getElementById('modalLandmark');
+        if (landmarkEl) landmarkEl.textContent = profile.landmark || '—';
+
+        const pincodeEl = document.getElementById('modalLocationPincode');
+        if (pincodeEl) pincodeEl.textContent = profile.pincode || '—';
+        
+        const coordsEl = document.getElementById('modalCoords');
+        const mapLinkEl = document.getElementById('modalMapLink');
+        const mapContainer = document.getElementById('modalMapActionContainer');
+        const gpsBadge = document.getElementById('modalGpsDetectedBadge');
+
+        if (profile.latitude && profile.longitude) {
+            if (coordsEl) coordsEl.textContent = `${Number(profile.latitude).toFixed(6)}, ${Number(profile.longitude).toFixed(6)}`;
+            if (mapLinkEl) mapLinkEl.href = `https://www.google.com/maps?q=${profile.latitude},${profile.longitude}`;
+            if (mapContainer) mapContainer.classList.remove('hidden');
+        } else {
+            if (coordsEl) coordsEl.textContent = 'Not pinned yet';
+            if (mapContainer) mapContainer.classList.add('hidden');
+        }
+
+        if (gpsBadge) {
+            if (profile.is_gps_detected) {
+                gpsBadge.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Auto-GPS Verified</span>';
+            } else if (profile.latitude && profile.longitude) {
+                gpsBadge.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">Manual Pin</span>';
+            } else {
+                gpsBadge.innerHTML = '';
+            }
+        }
+
 
         // Hours & Working Days
         const daysContainer = document.getElementById('modalWorkingDays');

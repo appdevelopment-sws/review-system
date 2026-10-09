@@ -29,6 +29,10 @@ class BountyAiProfile extends Model
         'opening_time',
         'closing_time',
         'is_24_hours',
+        'latitude',
+        'longitude',
+        'landmark',
+        'is_gps_detected',
         'onboarding_status',
         'current_step',
     ];
@@ -37,6 +41,9 @@ class BountyAiProfile extends Model
         'selected_goals' => 'array',
         'working_days' => 'array',
         'is_24_hours' => 'boolean',
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'is_gps_detected' => 'boolean',
         'current_step' => 'integer',
     ];
 

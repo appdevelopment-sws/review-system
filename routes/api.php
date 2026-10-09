@@ -20,6 +20,7 @@ Route::post('/bounty-ai/onboarding-step1', [ApiBountyAiController::class, 'saveS
 Route::post('/bounty-ai/business-info', [ApiBountyAiController::class, 'saveStep2']);
 Route::get('/bounty-ai/categories', [ApiBountyAiController::class, 'categories']);
 Route::post('/bounty-ai/category', [ApiBountyAiController::class, 'saveStep3Category']);
+Route::post('/bounty-ai/location', [ApiBountyAiController::class, 'saveStep4Location']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {

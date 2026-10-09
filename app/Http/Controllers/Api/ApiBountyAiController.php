@@ -290,4 +290,73 @@ class ApiBountyAiController extends Controller
             ],
         ]);
     }
+    /**
+     * Save Step 4: Business Storefront Location & GPS Coordinates.
+     */
+    public function saveStep4Location(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'address' => 'required|string|max:500',
+            'landmark' => 'nullable|string|max:255',
+            'pincode' => 'nullable|string|max:20',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
+            'is_gps_detected' => 'nullable|boolean',
+        ]);
+
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+            $profile->business_name = 'My Business';
+        }
+
+        $profile->address = $validated['address'];
+        if (array_key_exists('landmark', $validated)) {
+            $profile->landmark = $validated['landmark'];
+        }
+        if (!empty($validated['pincode'])) {
+            $profile->pincode = $validated['pincode'];
+        }
+        if (!empty($validated['city'])) {
+            $profile->city = $validated['city'];
+        }
+        if (!empty($validated['state'])) {
+            $profile->state = $validated['state'];
+        }
+        if (isset($validated['latitude'])) {
+            $profile->latitude = $validated['latitude'];
+        }
+        if (isset($validated['longitude'])) {
+            $profile->longitude = $validated['longitude'];
+        }
+        if (isset($validated['is_gps_detected'])) {
+            $profile->is_gps_detected = (bool) $validated['is_gps_detected'];
+        }
+        $profile->current_step = max(4, (int) $profile->current_step);
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Business location saved successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
 }
