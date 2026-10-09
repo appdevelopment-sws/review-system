@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
 use App\Models\MarketingGoal;
+use App\Models\BountyAiProfile;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -942,5 +943,80 @@ class AdminAuthController extends Controller
         $goal->delete();
 
         return redirect()->route('admin.marketing-goals')->with('success', "Goal '{$goalTitle}' deleted successfully!");
+    }
+
+    /**
+     * Display Bounty AI business onboarding users/profiles.
+     */
+    public function bountyAiUsers(Request $request)
+    {
+        $query = BountyAiProfile::with('user')->latest();
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('business_name', 'like', "%{$search}%")
+                  ->orWhere('phone_number', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhere('business_type', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('onboarding_status', $request->status);
+        }
+
+        if ($request->filled('type') && $request->type !== 'all') {
+            $query->where('business_type', $request->type);
+        }
+
+        $profiles = $query->paginate(15)->withQueryString();
+
+        $totalProfiles = BountyAiProfile::count();
+        $completedProfiles = BountyAiProfile::where('onboarding_status', 'completed')->count();
+        $inProgressProfiles = BountyAiProfile::where('onboarding_status', 'in_progress')->count();
+        $uniqueCities = BountyAiProfile::whereNotNull('city')->distinct()->count('city');
+
+        $marketingGoalsMap = MarketingGoal::pluck('title', 'slug')->toArray();
+        $businessTypes = BountyAiProfile::whereNotNull('business_type')->distinct()->pluck('business_type')->toArray();
+
+        return view('admin.bounty_ai.index', compact(
+            'profiles',
+            'totalProfiles',
+            'completedProfiles',
+            'inProgressProfiles',
+            'uniqueCities',
+            'marketingGoalsMap',
+            'businessTypes'
+        ));
+    }
+
+    /**
+     * Fetch single Bounty AI business profile details as JSON.
+     */
+    public function showBountyAiUser($id)
+    {
+        $profile = BountyAiProfile::with('user')->findOrFail($id);
+        return response()->json([
+            'status' => true,
+            'data' => $profile,
+        ]);
+    }
+
+    /**
+     * Delete a Bounty AI business profile.
+     */
+    public function destroyBountyAiUser($id)
+    {
+        $profile = BountyAiProfile::findOrFail($id);
+        $name = $profile->business_name;
+        $profile->delete();
+
+        return redirect()->route('admin.bounty-ai-users')->with('success', "Bounty AI profile for '{$name}' deleted successfully!");
     }
 }

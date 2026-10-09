@@ -1,0 +1,214 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\BountyAiProfile;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class ApiBountyAiController extends Controller
+{
+    /**
+     * Get dynamic onboarding configuration (categories, states, default hours).
+     */
+    public function config(): JsonResponse
+    {
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'business_types' => [
+                    'Retail Store',
+                    'Electronics & Appliances',
+                    'Grocery & Supermarket',
+                    'Restaurant / Cafe',
+                    'Fashion & Apparel',
+                    'Health & Medical',
+                    'Beauty & Salon',
+                    'Services & Consultancy',
+                    'Wholesale & Distribution',
+                    'Automotive & Hardware',
+                    'Education & Coaching',
+                    'Other Business',
+                ],
+                'states' => [
+                    'Andhra Pradesh',
+                    'Arunachal Pradesh',
+                    'Assam',
+                    'Bihar',
+                    'Chhattisgarh',
+                    'Goa',
+                    'Gujarat',
+                    'Haryana',
+                    'Himachal Pradesh',
+                    'Jharkhand',
+                    'Karnataka',
+                    'Kerala',
+                    'Madhya Pradesh',
+                    'Maharashtra',
+                    'Manipur',
+                    'Meghalaya',
+                    'Mizoram',
+                    'Nagaland',
+                    'Odisha',
+                    'Punjab',
+                    'Rajasthan',
+                    'Sikkim',
+                    'Tamil Nadu',
+                    'Telangana',
+                    'Tripura',
+                    'Uttar Pradesh',
+                    'Uttarakhand',
+                    'West Bengal',
+                    'Delhi NCR',
+                ],
+                'default_opening_time' => '09:00 AM',
+                'default_closing_time' => '09:00 PM',
+                'default_working_days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+            ],
+        ]);
+    }
+
+    /**
+     * Get existing business profile by user ID or token.
+     */
+    public function getBusinessInfo(Request $request): JsonResponse
+    {
+        $userId = $request->input('user_id') ?? ($request->user() ? $request->user()->id : null);
+
+        if (!$userId) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User ID is required.',
+            ], 400);
+        }
+
+        $profile = BountyAiProfile::where('user_id', $userId)->first();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * Save Step 1: Business Name & Selected Growth Goals.
+     */
+    public function saveStep1(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'business_name' => 'required|string|max:255',
+            'selected_goals' => 'nullable|array',
+        ]);
+
+        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        if ($userId && !User::where('id', $userId)->exists()) {
+            $userId = null;
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+        }
+
+        $profile->business_name = $validated['business_name'];
+        if (isset($validated['selected_goals'])) {
+            $profile->selected_goals = $validated['selected_goals'];
+        }
+        $profile->current_step = max(1, (int) $profile->current_step);
+        if ($profile->onboarding_status !== 'completed') {
+            $profile->onboarding_status = 'in_progress';
+        }
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Step 1 saved successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * Save Step 2: Full Detailed Business Information.
+     */
+    public function saveStep2(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'business_name' => 'nullable|string|max:255',
+            'phone_number' => 'required|string|max:50',
+            'email' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:255',
+            'address' => 'required|string|max:500',
+            'city' => 'required|string|max:100',
+            'state' => 'required|string|max:100',
+            'pincode' => 'required|string|max:20',
+            'business_type' => 'required|string|max:100',
+            'working_days' => 'nullable|array',
+            'opening_time' => 'nullable|string|max:30',
+            'closing_time' => 'nullable|string|max:30',
+            'is_24_hours' => 'nullable|boolean',
+            'selected_goals' => 'nullable|array',
+        ]);
+
+        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        if ($userId && !User::where('id', $userId)->exists()) {
+            $userId = null;
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+        }
+
+        if (!empty($validated['business_name'])) {
+            $profile->business_name = $validated['business_name'];
+        } elseif (empty($profile->business_name)) {
+            $profile->business_name = 'My Business';
+        }
+
+        if (isset($validated['selected_goals']) && !empty($validated['selected_goals'])) {
+            $profile->selected_goals = $validated['selected_goals'];
+        }
+
+        $profile->phone_number = $validated['phone_number'];
+        $profile->email = $validated['email'] ?? null;
+        $profile->website = $validated['website'] ?? null;
+        $profile->address = $validated['address'];
+        $profile->city = $validated['city'];
+        $profile->state = $validated['state'];
+        $profile->pincode = $validated['pincode'];
+        $profile->business_type = $validated['business_type'];
+        $profile->working_days = $validated['working_days'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        $profile->opening_time = $validated['opening_time'] ?? '09:00 AM';
+        $profile->closing_time = $validated['closing_time'] ?? '09:00 PM';
+        $profile->is_24_hours = (bool) ($validated['is_24_hours'] ?? false);
+        $profile->current_step = 2;
+        $profile->onboarding_status = 'completed';
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Business profile submitted successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
+}

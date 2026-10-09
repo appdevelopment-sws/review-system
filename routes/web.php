@@ -53,6 +53,11 @@ Route::prefix('admin')->group(function () {
         Route::post('/marketing-goals/{id}/toggle', [AdminAuthController::class, 'toggleMarketingGoalStatus'])->name('admin.marketing-goals.toggle');
         Route::delete('/marketing-goals/{id}', [AdminAuthController::class, 'destroyMarketingGoal'])->name('admin.marketing-goals.destroy');
 
+        // Bounty AI Users (Business Onboarding Registrations)
+        Route::get('/bounty-ai-users', [AdminAuthController::class, 'bountyAiUsers'])->name('admin.bounty-ai-users');
+        Route::get('/bounty-ai-users/{id}', [AdminAuthController::class, 'showBountyAiUser'])->name('admin.bounty-ai-users.show');
+        Route::delete('/bounty-ai-users/{id}', [AdminAuthController::class, 'destroyBountyAiUser'])->name('admin.bounty-ai-users.destroy');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/', function () {

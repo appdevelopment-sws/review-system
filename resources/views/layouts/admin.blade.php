@@ -190,6 +190,23 @@
                 @endif
             </a>
 
+            <!-- Bounty AI Users Link -->
+            <a href="{{ route('admin.bounty-ai-users') }}" 
+               class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 border {{ request()->routeIs('admin.bounty-ai-users*') ? 'bg-indigo-50 text-indigo-600 border-indigo-200/80 font-semibold shadow-xs' : 'text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900' }}">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 {{ request()->routeIs('admin.bounty-ai-users*') ? 'text-indigo-600' : 'text-slate-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span>Bounty AI Users</span>
+                </div>
+                @php
+                    $bountyCountBadge = \App\Models\BountyAiProfile::count();
+                @endphp
+                @if($bountyCountBadge > 0)
+                    <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white shadow-xs">{{ $bountyCountBadge }}</span>
+                @endif
+            </a>
+
             <!-- Withdrawal Requests Link -->
             <a href="{{ route('admin.withdrawals') }}" 
                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 border {{ request()->routeIs('admin.withdrawals*') ? 'bg-indigo-50 text-indigo-600 border-indigo-200/80 font-semibold shadow-xs' : 'text-slate-600 border-transparent hover:bg-slate-100 hover:text-slate-900' }}">

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiBusinessCampaignController;
 use App\Http\Controllers\Api\ApiTaskController;
 use App\Http\Controllers\Api\ApiWalletController;
+use App\Http\Controllers\Api\ApiBountyAiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,12 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [ApiAuthController::class, 'register']);
 Route::post('/login', [ApiAuthController::class, 'login']);
 Route::get('/marketing-goals', [ApiTaskController::class, 'marketingGoals']);
+
+// Bounty AI Onboarding & Business Profile Routes
+Route::get('/bounty-ai/config', [ApiBountyAiController::class, 'config']);
+Route::get('/bounty-ai/business-info', [ApiBountyAiController::class, 'getBusinessInfo']);
+Route::post('/bounty-ai/onboarding-step1', [ApiBountyAiController::class, 'saveStep1']);
+Route::post('/bounty-ai/business-info', [ApiBountyAiController::class, 'saveStep2']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {

@@ -82,6 +82,14 @@ class User extends Authenticatable
     /**
      * Get user's default/primary payout detail.
      */
+    /**
+     * Get Bounty AI business onboarding profile.
+     */
+    public function bountyAiProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(BountyAiProfile::class, 'user_id');
+    }
+
     public function defaultPayoutDetail(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(UserPayoutDetail::class)->latestOfMany();
