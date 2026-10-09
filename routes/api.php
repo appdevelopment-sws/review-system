@@ -18,6 +18,8 @@ Route::get('/bounty-ai/config', [ApiBountyAiController::class, 'config']);
 Route::get('/bounty-ai/business-info', [ApiBountyAiController::class, 'getBusinessInfo']);
 Route::post('/bounty-ai/onboarding-step1', [ApiBountyAiController::class, 'saveStep1']);
 Route::post('/bounty-ai/business-info', [ApiBountyAiController::class, 'saveStep2']);
+Route::get('/bounty-ai/categories', [ApiBountyAiController::class, 'categories']);
+Route::post('/bounty-ai/category', [ApiBountyAiController::class, 'saveStep3Category']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {

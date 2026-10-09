@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BountyAiCategory;
 use App\Models\BountyAiProfile;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,9 +16,12 @@ class ApiBountyAiController extends Controller
      */
     public function config(): JsonResponse
     {
+        $categories = BountyAiCategory::active()->get();
+
         return response()->json([
             'status' => true,
             'data' => [
+                'categories' => $categories,
                 'business_types' => [
                     'Retail Store',
                     'Electronics & Appliances',
@@ -71,6 +75,21 @@ class ApiBountyAiController extends Controller
     }
 
     /**
+     * Get list of active business categories for onboarding Step 3.
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = BountyAiCategory::active()->get();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'categories' => $categories,
+            ],
+        ]);
+    }
+
+    /**
      * Get existing business profile by user ID or token.
      */
     public function getBusinessInfo(Request $request): JsonResponse
@@ -105,9 +124,12 @@ class ApiBountyAiController extends Controller
             'selected_goals' => 'nullable|array',
         ]);
 
-        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
-        if ($userId && !User::where('id', $userId)->exists()) {
-            $userId = null;
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
         }
 
         $profile = null;
@@ -155,6 +177,8 @@ class ApiBountyAiController extends Controller
             'state' => 'required|string|max:100',
             'pincode' => 'required|string|max:20',
             'business_type' => 'required|string|max:100',
+            'category' => 'nullable|string|max:100',
+            'category_id' => 'nullable|string|max:100',
             'working_days' => 'nullable|array',
             'opening_time' => 'nullable|string|max:30',
             'closing_time' => 'nullable|string|max:30',
@@ -162,9 +186,12 @@ class ApiBountyAiController extends Controller
             'selected_goals' => 'nullable|array',
         ]);
 
-        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
-        if ($userId && !User::where('id', $userId)->exists()) {
-            $userId = null;
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
         }
 
         $profile = null;
@@ -195,17 +222,69 @@ class ApiBountyAiController extends Controller
         $profile->state = $validated['state'];
         $profile->pincode = $validated['pincode'];
         $profile->business_type = $validated['business_type'];
+        if (!empty($validated['category'])) {
+            $profile->category = $validated['category'];
+        }
+        if (!empty($validated['category_id'])) {
+            $profile->category_id = $validated['category_id'];
+        }
         $profile->working_days = $validated['working_days'] ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         $profile->opening_time = $validated['opening_time'] ?? '09:00 AM';
         $profile->closing_time = $validated['closing_time'] ?? '09:00 PM';
         $profile->is_24_hours = (bool) ($validated['is_24_hours'] ?? false);
-        $profile->current_step = 2;
+        $profile->current_step = max(2, (int) $profile->current_step);
         $profile->onboarding_status = 'completed';
         $profile->save();
 
         return response()->json([
             'status' => true,
             'message' => 'Business profile submitted successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * Save Step 3: Selected Business Category.
+     */
+    public function saveStep3Category(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'category' => 'required|string|max:100',
+            'category_id' => 'nullable|string|max:100',
+        ]);
+
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+            $profile->business_name = 'My Business';
+        }
+
+        $profile->category = $validated['category'];
+        if (!empty($validated['category_id'])) {
+            $profile->category_id = $validated['category_id'];
+        }
+        $profile->current_step = max(3, (int) $profile->current_step);
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Business category saved successfully!',
             'data' => [
                 'profile' => $profile,
             ],

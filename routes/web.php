@@ -58,6 +58,13 @@ Route::prefix('admin')->group(function () {
         Route::get('/bounty-ai-users/{id}', [AdminAuthController::class, 'showBountyAiUser'])->name('admin.bounty-ai-users.show');
         Route::delete('/bounty-ai-users/{id}', [AdminAuthController::class, 'destroyBountyAiUser'])->name('admin.bounty-ai-users.destroy');
 
+        // Bounty AI Business Categories (Step 3 Setup)
+        Route::get('/bounty-ai-categories', [AdminAuthController::class, 'bountyAiCategories'])->name('admin.bounty-ai-categories');
+        Route::post('/bounty-ai-categories', [AdminAuthController::class, 'storeBountyAiCategory'])->name('admin.bounty-ai-categories.store');
+        Route::put('/bounty-ai-categories/{id}', [AdminAuthController::class, 'updateBountyAiCategory'])->name('admin.bounty-ai-categories.update');
+        Route::post('/bounty-ai-categories/{id}/toggle', [AdminAuthController::class, 'toggleBountyAiCategoryStatus'])->name('admin.bounty-ai-categories.toggle');
+        Route::delete('/bounty-ai-categories/{id}', [AdminAuthController::class, 'destroyBountyAiCategory'])->name('admin.bounty-ai-categories.destroy');
+
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         Route::get('/', function () {

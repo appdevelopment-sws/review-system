@@ -23,6 +23,8 @@ class BountyAiProfile extends Model
         'state',
         'pincode',
         'business_type',
+        'category',
+        'category_id',
         'working_days',
         'opening_time',
         'closing_time',
@@ -61,27 +63,13 @@ class BountyAiProfile extends Model
     }
 
     /**
-     * Format working days as comma-separated or summary.
+     * Formatted list of active operating days.
      */
     public function getWorkingDaysFormattedAttribute(): string
     {
-        if (empty($this->working_days)) {
-            return 'All Days';
-        }
-        if (count($this->working_days) === 7) {
-            return 'Mon - Sun (Daily)';
+        if (empty($this->working_days) || !is_array($this->working_days)) {
+            return 'Mon - Sat';
         }
         return implode(', ', $this->working_days);
-    }
-
-    /**
-     * Friendly status display.
-     */
-    public function getStepStatusLabelAttribute(): string
-    {
-        if ($this->current_step >= 2 || $this->onboarding_status === 'completed') {
-            return 'Fully Onboarded';
-        }
-        return 'In Progress (Step 1)';
     }
 }

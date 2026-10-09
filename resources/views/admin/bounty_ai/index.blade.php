@@ -225,15 +225,24 @@
                                 @endif
                             </td>
 
-                            <!-- Category & Location -->
+                            <!-- Category (Step 3) & Location -->
                             <td class="py-4 px-6">
                                 <div>
+                                    @if($profile->category)
+                                        <div class="mb-1">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                {{ $categoriesMap[$profile->category] ?? ucwords(str_replace('_', ' ', $profile->category)) }}
+                                            </span>
+                                        </div>
+                                    @endif
+
                                     @if($profile->business_type)
-                                        <span class="inline-block px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 mb-1">
+                                        <span class="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 mb-1">
                                             {{ $profile->business_type }}
                                         </span>
-                                    @else
-                                        <span class="text-xs text-slate-400 italic">â€”</span>
+                                    @elseif(!$profile->category)
+                                        <span class="text-xs text-slate-400 italic">—</span>
                                     @endif
 
                                     <div class="text-xs text-slate-600 flex items-center gap-1">
@@ -248,7 +257,6 @@
                                     </div>
                                 </div>
                             </td>
-
                             <!-- Contact Info -->
                             <td class="py-4 px-6">
                                 <div class="text-xs space-y-0.5">

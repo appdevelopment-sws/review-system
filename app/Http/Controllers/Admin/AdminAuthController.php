@@ -11,6 +11,7 @@ use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
 use App\Models\MarketingGoal;
 use App\Models\BountyAiProfile;
+use App\Models\BountyAiCategory;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -982,8 +983,18 @@ class AdminAuthController extends Controller
         $inProgressProfiles = BountyAiProfile::where('onboarding_status', 'in_progress')->count();
         $uniqueCities = BountyAiProfile::whereNotNull('city')->distinct()->count('city');
 
+        if ($request->filled('category') && $request->category !== 'all') {
+            $selectedCategory = $request->category;
+            $query->where(function ($q) use ($selectedCategory) {
+                $q->where('category', $selectedCategory)
+                  ->orWhere('category_id', $selectedCategory);
+            });
+        }
+
         $marketingGoalsMap = MarketingGoal::pluck('title', 'slug')->toArray();
         $businessTypes = BountyAiProfile::whereNotNull('business_type')->distinct()->pluck('business_type')->toArray();
+        $categoriesMap = BountyAiCategory::pluck('name', 'category_key')->toArray();
+        $availableCategories = BountyAiCategory::orderBy('sort_order', 'asc')->get();
 
         return view('admin.bounty_ai.index', compact(
             'profiles',
@@ -992,7 +1003,9 @@ class AdminAuthController extends Controller
             'inProgressProfiles',
             'uniqueCities',
             'marketingGoalsMap',
-            'businessTypes'
+            'businessTypes',
+            'categoriesMap',
+            'availableCategories'
         ));
     }
 
@@ -1018,5 +1031,139 @@ class AdminAuthController extends Controller
         $profile->delete();
 
         return redirect()->route('admin.bounty-ai-users')->with('success', "Bounty AI profile for '{$name}' deleted successfully!");
+    }
+
+    /**
+     * Display Bounty AI Business Categories management.
+     */
+    public function bountyAiCategories(Request $request)
+    {
+        $query = BountyAiCategory::query()->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
+
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('category_key', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        $categories = $query->paginate(15)->withQueryString();
+
+        $totalCategories = BountyAiCategory::count();
+        $activeCategories = BountyAiCategory::where('is_active', true)->count();
+        $inactiveCategories = BountyAiCategory::where('is_active', false)->count();
+        $totalAssignedUsers = BountyAiProfile::whereNotNull('category')->count();
+
+        return view('admin.bounty_ai.categories', compact(
+            'categories',
+            'totalCategories',
+            'activeCategories',
+            'inactiveCategories',
+            'totalAssignedUsers'
+        ));
+    }
+
+    /**
+     * Store a new Bounty AI Business Category.
+     */
+    public function storeBountyAiCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'category_key' => 'nullable|string|max:100|unique:bounty_ai_categories,category_key',
+            'description' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:50',
+            'icon_bg_color' => 'nullable|string|max:30',
+            'icon_color' => 'nullable|string|max:30',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $categoryKey = !empty($validated['category_key']) 
+            ? Str::slug($validated['category_key'], '_') 
+            : Str::slug($validated['name'], '_');
+
+        // Ensure key uniqueness if auto-generated
+        $originalKey = $categoryKey;
+        $counter = 1;
+        while (BountyAiCategory::where('category_key', $categoryKey)->exists()) {
+            $categoryKey = $originalKey . '_' . $counter++;
+        }
+
+        BountyAiCategory::create([
+            'category_key' => $categoryKey,
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'icon' => !empty($validated['icon']) ? $validated['icon'] : 'shopping_bag',
+            'icon_bg_color' => !empty($validated['icon_bg_color']) ? $validated['icon_bg_color'] : '#FFFBEB',
+            'icon_color' => !empty($validated['icon_color']) ? $validated['icon_color'] : '#D97706',
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : true,
+        ]);
+
+        return redirect()->route('admin.bounty-ai-categories')->with('success', "Business category '{$validated['name']}' created successfully!");
+    }
+
+    /**
+     * Update an existing Bounty AI Business Category.
+     */
+    public function updateBountyAiCategory(Request $request, $id)
+    {
+        $category = BountyAiCategory::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'category_key' => 'required|string|max:100|unique:bounty_ai_categories,category_key,' . $category->id,
+            'description' => 'nullable|string|max:255',
+            'icon' => 'nullable|string|max:50',
+            'icon_bg_color' => 'nullable|string|max:30',
+            'icon_color' => 'nullable|string|max:30',
+            'sort_order' => 'nullable|integer',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $category->update([
+            'name' => $validated['name'],
+            'category_key' => Str::slug($validated['category_key'], '_'),
+            'description' => $validated['description'] ?? null,
+            'icon' => !empty($validated['icon']) ? $validated['icon'] : $category->icon,
+            'icon_bg_color' => !empty($validated['icon_bg_color']) ? $validated['icon_bg_color'] : $category->icon_bg_color,
+            'icon_color' => !empty($validated['icon_color']) ? $validated['icon_color'] : $category->icon_color,
+            'sort_order' => $validated['sort_order'] ?? 0,
+            'is_active' => $request->has('is_active') ? $request->boolean('is_active') : false,
+        ]);
+
+        return redirect()->route('admin.bounty-ai-categories')->with('success', "Category '{$category->name}' updated successfully!");
+    }
+
+    /**
+     * Quick toggle active status of a Business Category.
+     */
+    public function toggleBountyAiCategoryStatus($id)
+    {
+        $category = BountyAiCategory::findOrFail($id);
+        $category->is_active = !$category->is_active;
+        $category->save();
+
+        $statusStr = $category->is_active ? 'activated' : 'deactivated';
+        return back()->with('success', "Category '{$category->name}' {$statusStr} successfully!");
+    }
+
+    /**
+     * Delete a Business Category.
+     */
+    public function destroyBountyAiCategory($id)
+    {
+        $category = BountyAiCategory::findOrFail($id);
+        $name = $category->name;
+        $category->delete();
+
+        return redirect()->route('admin.bounty-ai-categories')->with('success', "Category '{$name}' deleted successfully!");
     }
 }
