@@ -408,4 +408,114 @@ class ApiBountyAiController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Save Step 5: Google Business Profile OAuth Account Connection.
+     */
+    public function saveStep5GoogleConnect(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'google_account_email' => 'required|email|max:255',
+            'google_account_name' => 'nullable|string|max:255',
+            'google_avatar_url' => 'nullable|string',
+            'is_google_connected' => 'nullable|boolean',
+        ]);
+
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+            $profile->business_name = 'My Business';
+        }
+
+        $profile->is_google_connected = $validated['is_google_connected'] ?? true;
+        $profile->google_account_email = $validated['google_account_email'];
+        if (!empty($validated['google_account_name'])) {
+            $profile->google_account_name = $validated['google_account_name'];
+        }
+        if (!empty($validated['google_avatar_url'])) {
+            $profile->google_avatar_url = $validated['google_avatar_url'];
+        }
+        $profile->current_step = max(5, (int) $profile->current_step);
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Google Business Profile connected successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * Save Step 6: Selected Google Business Location Listing.
+     */
+    public function saveStep6GoogleLocation(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id' => 'nullable|integer',
+            'google_location_id' => 'required|string|max:100',
+            'google_location_title' => 'required|string|max:255',
+            'google_location_address' => 'nullable|string',
+            'google_rating' => 'nullable|numeric',
+            'google_reviews_count' => 'nullable|integer',
+            'is_verified' => 'nullable|boolean',
+        ]);
+
+        $rawUserId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $userId = null;
+        if (!empty($rawUserId) && (int) $rawUserId > 0) {
+            if (User::where('id', (int) $rawUserId)->exists()) {
+                $userId = (int) $rawUserId;
+            }
+        }
+
+        $profile = null;
+        if ($userId) {
+            $profile = BountyAiProfile::where('user_id', $userId)->first();
+        }
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->user_id = $userId;
+            $profile->business_name = 'My Business';
+        }
+
+        $profile->is_google_connected = true;
+        $profile->google_location_id = $validated['google_location_id'];
+        $profile->google_location_title = $validated['google_location_title'];
+        if (!empty($validated['google_location_address'])) {
+            $profile->google_location_address = $validated['google_location_address'];
+        }
+        if (isset($validated['google_rating'])) {
+            $profile->google_rating = $validated['google_rating'];
+        }
+        if (isset($validated['google_reviews_count'])) {
+            $profile->google_reviews_count = $validated['google_reviews_count'];
+        }
+        $profile->current_step = max(6, (int) $profile->current_step);
+        $profile->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Google Business location selected and linked successfully!',
+            'data' => [
+                'profile' => $profile,
+            ],
+        ]);
+    }
 }

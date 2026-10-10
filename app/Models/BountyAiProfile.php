@@ -33,6 +33,15 @@ class BountyAiProfile extends Model
         'longitude',
         'landmark',
         'is_gps_detected',
+        'is_google_connected',
+        'google_account_email',
+        'google_account_name',
+        'google_avatar_url',
+        'google_location_id',
+        'google_location_title',
+        'google_location_address',
+        'google_rating',
+        'google_reviews_count',
         'onboarding_status',
         'current_step',
     ];
@@ -44,6 +53,9 @@ class BountyAiProfile extends Model
         'latitude' => 'float',
         'longitude' => 'float',
         'is_gps_detected' => 'boolean',
+        'is_google_connected' => 'boolean',
+        'google_rating' => 'float',
+        'google_reviews_count' => 'integer',
         'current_step' => 'integer',
     ];
 

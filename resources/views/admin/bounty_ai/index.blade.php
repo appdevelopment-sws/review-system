@@ -245,6 +245,14 @@
                                         <span class="text-xs text-slate-400 italic">&mdash;</span>
                                     @endif
 
+                                    @if($profile->is_google_connected)
+                                        <div class="mb-1">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <svg class="w-2.5 h-2.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                                Google Verified
+                                            </span>
+                                        </div>
+                                    @endif
                                     <div class="text-xs text-slate-600 flex items-center gap-1">
                                         @if($profile->city)
                                             <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -504,6 +512,36 @@
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             <span>Open in Google Maps</span>
                         </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3.6: Step 5 & 6 Google Business Profile -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-400 font-extrabold uppercase tracking-wider text-[11px] block">Step 5 & 6: Google Business Profile</span>
+                    <span id="modalGoogleConnectedBadge"></span>
+                </div>
+                <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-200/80 space-y-2.5 text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Connected Google Account</span>
+                            <span id="modalGoogleEmail" class="font-bold text-slate-800 text-sm mt-0.5 block">&mdash;</span>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Linked Maps Listing</span>
+                            <span id="modalGoogleListingTitle" class="font-bold text-slate-800 text-sm mt-0.5 block">&mdash;</span>
+                        </div>
+                        <div class="md:col-span-2 flex items-center gap-4">
+                            <div>
+                                <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Google Rating</span>
+                                <span id="modalGoogleRating" class="font-bold text-amber-600 text-sm mt-0.5 flex items-center gap-1">&mdash;</span>
+                            </div>
+                            <div>
+                                <span class="block text-slate-400 font-bold uppercase tracking-wider text-[10px]">Total Google Reviews</span>
+                                <span id="modalGoogleReviews" class="font-bold text-slate-700 text-sm mt-0.5 block">&mdash;</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
