@@ -42,6 +42,11 @@ class BountyAiProfile extends Model
         'google_location_address',
         'google_rating',
         'google_reviews_count',
+        'google_refresh_token',
+        'google_access_token',
+        'google_token_expires_at',
+        'google_account_id',
+        'google_scope',
         'onboarding_status',
         'current_step',
     ];
@@ -56,6 +61,7 @@ class BountyAiProfile extends Model
         'is_google_connected' => 'boolean',
         'google_rating' => 'float',
         'google_reviews_count' => 'integer',
+        'google_token_expires_at' => 'datetime',
         'current_step' => 'integer',
     ];
 

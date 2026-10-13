@@ -23,6 +23,11 @@ Route::post('/bounty-ai/category', [ApiBountyAiController::class, 'saveStep3Cate
 Route::post('/bounty-ai/location', [ApiBountyAiController::class, 'saveStep4Location']);
 Route::post('/bounty-ai/google-connect', [ApiBountyAiController::class, 'saveStep5GoogleConnect']);
 Route::post('/bounty-ai/google-location', [ApiBountyAiController::class, 'saveStep6GoogleLocation']);
+Route::get('/bounty-ai/google-locations', [ApiBountyAiController::class, 'getGoogleLocations']);
+Route::get('/bounty-ai/google-reviews', [ApiBountyAiController::class, 'getGoogleReviews']);
+Route::post('/bounty-ai/google-reviews/reply', [ApiBountyAiController::class, 'replyGoogleReview']);
+Route::post('/bounty-ai/google-posts', [ApiBountyAiController::class, 'createGooglePost']);
+
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {

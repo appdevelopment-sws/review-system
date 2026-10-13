@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BountyAiCategory;
 use App\Models\BountyAiProfile;
+use App\Services\GoogleBusinessService;
+use Carbon\Carbon;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -518,4 +520,102 @@ class ApiBountyAiController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get Google Business Profile locations for a business profile.
+     */
+    public function getGoogleLocations(Request $request): JsonResponse
+    {
+        $userId = $request->query('user_id') ?? ($request->user() ? $request->user()->id : null);
+        $profile = $userId ? BountyAiProfile::where('user_id', $userId)->first() : null;
+
+        if (!$profile) {
+            $profile = new BountyAiProfile();
+            $profile->business_name = 'My Business';
+        }
+
+        $gbpService = new GoogleBusinessService();
+        $locations = $gbpService->fetchLocations($profile);
+
+        return response()->json([
+            'status' => true,
+            'data'   => [
+                'listings' => $locations,
+            ],
+        ]);
+    }
+
+    /**
+     * Fetch customer reviews from Google Business Profile.
+     */
+    public function getGoogleReviews(Request $request): JsonResponse
+    {
+        $userId = $request->query('user_id') ?? ($request->user() ? $request->user()->id : null);
+        $profile = $userId ? BountyAiProfile::where('user_id', $userId)->first() : null;
+
+        if (!$profile) {
+            return response()->json(['status' => false, 'message' => 'Business profile not found'], 404);
+        }
+
+        $gbpService = new GoogleBusinessService();
+        $reviews = $gbpService->fetchReviews($profile);
+
+        return response()->json([
+            'status' => true,
+            'data'   => [
+                'reviews' => $reviews,
+            ],
+        ]);
+    }
+
+    /**
+     * Reply to a customer review on Google Business Profile with AI/Custom text.
+     */
+    public function replyGoogleReview(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id'   => 'nullable|integer',
+            'review_id' => 'required|string',
+            'reply'     => 'required|string',
+        ]);
+
+        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $profile = $userId ? BountyAiProfile::where('user_id', $userId)->first() : null;
+
+        if (!$profile) {
+            return response()->json(['status' => false, 'message' => 'Business profile not found'], 404);
+        }
+
+        $gbpService = new GoogleBusinessService();
+        $res = $gbpService->replyToReview($profile, $validated['review_id'], $validated['reply']);
+
+        return response()->json($res);
+    }
+
+    /**
+     * Publish an AI or custom marketing post to Google Business Profile.
+     */
+    public function createGooglePost(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'user_id'     => 'nullable|integer',
+            'summary'     => 'required|string',
+            'action_type' => 'nullable|string',
+            'url'         => 'nullable|string',
+            'media_url'   => 'nullable|string',
+        ]);
+
+        $userId = $validated['user_id'] ?? ($request->user() ? $request->user()->id : null);
+        $profile = $userId ? BountyAiProfile::where('user_id', $userId)->first() : null;
+
+        if (!$profile) {
+            return response()->json(['status' => false, 'message' => 'Business profile not found'], 404);
+        }
+
+        $gbpService = new GoogleBusinessService();
+        $res = $gbpService->createLocalPost($profile, $validated);
+
+        return response()->json($res);
+    }
+
 }
