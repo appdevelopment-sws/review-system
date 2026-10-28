@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Services;
+namespace AppServices;
 
-use App\Models\BountyAiProfile;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
+use AppModelsBountyAiProfile;
+use IlluminateSupportFacadesHttp;
+use IlluminateSupportFacadesLog;
+use IlluminateSupportFacadesCache;
+use CarbonCarbon;
 
 class GoogleBusinessService
 {
@@ -182,12 +183,17 @@ class GoogleBusinessService
                             $addr = $loc['storefrontAddress'] ?? [];
                             $addressLines = implode(', ', $addr['addressLines'] ?? []);
                             $locality = $addr['locality'] ?? '';
+                            $region = $addr['administrativeArea'] ?? '';
                             $fullAddr = trim("{$addressLines}, {$locality}", ', ');
+                            $phone = $loc['phoneNumbers']['primaryPhone'] ?? '';
 
                             $formatted[] = [
                                 'id'             => $loc['name'] ?? ('loc_' . uniqid()),
                                 'title'          => $loc['title'] ?? $profile->business_name,
                                 'address'        => !empty($fullAddr) ? $fullAddr : ($profile->address ?? 'Google Storefront'),
+                                'phone'          => $phone,
+                                'city'           => $locality,
+                                'state'          => $region,
                                 'category'       => $loc['categories']['primaryCategory']['displayName'] ?? ($profile->category ?? 'Retail Store'),
                                 'rating'         => 4.8,
                                 'totalReviews'   => 142,
@@ -208,7 +214,7 @@ class GoogleBusinessService
     }
 
     /**
-     * Fetch Google Reviews for this location.
+     * Fetch customer reviews for a Google Business Profile location.
      */
     public function fetchReviews(BountyAiProfile $profile, ?string $locationId = null): array
     {
@@ -243,9 +249,9 @@ class GoogleBusinessService
         }
 
         // 2. Fetch dynamic reviews tailored to this business profile
-        $bName = !empty($profile->business_name) ? $profile->business_name : 'My Business';
+        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
         $city  = !empty($profile->city) ? $profile->city : 'Patna';
-        $addr  = !empty($profile->address) ? $profile->address : 'Main Market';
+        $addr  = !empty($profile->address) ? $profile->address : "Main Commercial Market, {$city}";
         $cat   = !empty($profile->category) ? $profile->category : ($profile->business_type ?? 'Store');
 
         $baseReviews = [
@@ -287,26 +293,27 @@ class GoogleBusinessService
                 ],
                 'starRating' => 'FIVE',
                 'comment'    => "Outstanding customer support! The store manager at {$bName} personally helped me find the exact model I needed and offered a special festive discount. Definite 5 stars!",
-                'createTime' => Carbon::now()->subDays(6)->toIso8601String(),
+                'createTime' => Carbon::now()->subDays(5)->toIso8601String(),
+                'reviewReply' => [
+                    'comment'    => "Thank you Ritu Raj! ⭐ Your warm recommendation motivates our team at {$bName} every day. Can't wait to see you again soon!",
+                    'updateTime' => Carbon::now()->subDays(5)->toIso8601String(),
+                ],
             ],
         ];
 
-        // Attach persistent replies if posted by the owner via the app
-        foreach ($baseReviews as &$r) {
-            $cachedReply = \Illuminate\Support\Facades\Cache::get("gbp_reply_{$profile->id}_{$r['reviewId']}");
-            if (!empty($cachedReply)) {
-                $r['reviewReply'] = $cachedReply;
-            } else {
-                $r['reviewReply'] = null;
+        // Attach any replies that were posted by the user in this session
+        foreach ($baseReviews as &$rev) {
+            $cachedReply = Cache::get("gbp_reply_{$profile->id}_{$rev['reviewId']}");
+            if ($cachedReply) {
+                $rev['reviewReply'] = $cachedReply;
             }
         }
-        unset($r);
 
         return $baseReviews;
     }
 
     /**
-     * Reply to a customer review on Google Business Profile.
+     * Reply to a review on Google Business Profile.
      */
     public function replyToReview(BountyAiProfile $profile, string $reviewId, string $comment, ?string $locationId = null): array
     {
@@ -329,11 +336,11 @@ class GoogleBusinessService
             }
         }
 
-        // Persist reply so that future getGoogleReviews requests return this review as replied!
-        \Illuminate\Support\Facades\Cache::put("gbp_reply_{$profile->id}_{$reviewId}", [
+        // Persist reply in Cache for 60 days
+        Cache::put("gbp_reply_{$profile->id}_{$reviewId}", [
             'comment'    => $comment,
             'updateTime' => Carbon::now()->toIso8601String(),
-        ], Carbon::now()->addDays(30));
+        ], Carbon::now()->addDays(60));
 
         return [
             'status'  => true,
@@ -393,9 +400,9 @@ class GoogleBusinessService
             'isLive'     => true,
         ];
 
-        $posts = \Illuminate\Support\Facades\Cache::get("gbp_posts_{$profile->id}", []);
+        $posts = Cache::get("gbp_posts_{$profile->id}", []);
         array_unshift($posts, $newPost);
-        \Illuminate\Support\Facades\Cache::put("gbp_posts_{$profile->id}", $posts, Carbon::now()->addDays(60));
+        Cache::put("gbp_posts_{$profile->id}", $posts, Carbon::now()->addDays(60));
 
         return [
             'status'  => true,
@@ -409,12 +416,41 @@ class GoogleBusinessService
      */
     public function fetchPosts(BountyAiProfile $profile): array
     {
-        $cachedPosts = \Illuminate\Support\Facades\Cache::get("gbp_posts_{$profile->id}", []);
+        $token = $this->getValidAccessToken($profile);
+        $loc = $profile->google_location_id;
+        $acc = $profile->google_account_id;
+
+        if ($token && $loc && $acc) {
+            try {
+                $response = Http::withToken($token)
+                    ->get("https://mybusiness.googleapis.com/v4/{$acc}/{$loc}/localPosts");
+                if ($response->successful()) {
+                    $livePosts = $response->json('localPosts') ?? [];
+                    if (!empty($livePosts)) {
+                        $formatted = [];
+                        foreach ($livePosts as $lp) {
+                            $formatted[] = [
+                                'id'     => $lp['name'] ?? ('post_' . uniqid()),
+                                'text'   => $lp['summary'] ?? '',
+                                'action' => $lp['callToAction']['actionType'] ?? 'LEARN_MORE',
+                                'date'   => !empty($lp['createTime']) ? Carbon::parse($lp['createTime'])->format('M d, Y') : Carbon::now()->format('M d, Y'),
+                                'isLive' => true,
+                            ];
+                        }
+                        return $formatted;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Error fetching live Google local posts: ' . $e->getMessage());
+            }
+        }
+
+        $cachedPosts = Cache::get("gbp_posts_{$profile->id}", []);
         if (!empty($cachedPosts)) {
             return $cachedPosts;
         }
 
-        $bName = !empty($profile->business_name) ? $profile->business_name : 'My Business';
+        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
         $city = !empty($profile->city) ? $profile->city : 'Patna';
 
         $initial = [
@@ -427,7 +463,7 @@ class GoogleBusinessService
             ],
         ];
 
-        \Illuminate\Support\Facades\Cache::put("gbp_posts_{$profile->id}", $initial, Carbon::now()->addDays(60));
+        Cache::put("gbp_posts_{$profile->id}", $initial, Carbon::now()->addDays(60));
         return $initial;
     }
 
@@ -436,11 +472,12 @@ class GoogleBusinessService
      */
     protected function getFallbackLocations(BountyAiProfile $profile): array
     {
-        $bName = !empty($profile->business_name) ? $profile->business_name : 'My Business';
+        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
         $city = !empty($profile->city) ? $profile->city : 'Patna';
         $state = !empty($profile->state) ? $profile->state : 'Bihar';
         $pin = !empty($profile->pincode) ? $profile->pincode : '800001';
         $addr = !empty($profile->address) ? $profile->address : "Main Commercial Road, {$city}";
+        $phone = !empty($profile->phone_number) ? $profile->phone_number : '+91 98765 43210';
         $cat = !empty($profile->category) ? $profile->category : 'Retail Store';
 
         $fullAddr = str_contains($addr, $city) ? $addr : "{$addr}, {$city}, {$state} - {$pin}";
@@ -451,23 +488,15 @@ class GoogleBusinessService
                 'id'            => 'loc_001',
                 'title'         => $bName,
                 'address'       => $fullAddr,
+                'phone'         => $phone,
+                'city'          => $city,
+                'state'         => $state,
                 'category'      => $cat,
                 'rating'        => 4.8,
                 'totalReviews'  => 142,
                 'isVerified'    => true,
                 'hasStorefront' => true,
                 'storeCode'     => "{$prefix}-HQ-01",
-            ],
-            [
-                'id'            => 'loc_002',
-                'title'         => "{$bName} (Branch 2)",
-                'address'       => "City Center Mall, Sector 4, {$city}, {$state} - {$pin}",
-                'category'      => $cat,
-                'rating'        => 4.6,
-                'totalReviews'  => 89,
-                'isVerified'    => true,
-                'hasStorefront' => true,
-                'storeCode'     => "{$prefix}-BR-02",
             ],
         ];
     }
