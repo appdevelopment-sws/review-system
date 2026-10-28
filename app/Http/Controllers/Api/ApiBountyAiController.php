@@ -394,6 +394,7 @@ class ApiBountyAiController extends Controller
             'google_account_name' => 'nullable|string|max:255',
             'google_avatar_url' => 'nullable|string',
             'server_auth_code' => 'nullable|string',
+            'access_token' => 'nullable|string',
             'is_google_connected' => 'nullable|boolean',
         ]);
 
@@ -414,11 +415,17 @@ class ApiBountyAiController extends Controller
 
         $gbpService = new GoogleBusinessService();
 
-        // 1. Exchange server_auth_code for permanent OAuth tokens
+        // 1. Direct device access_token from mobile Google Sign-In
+        if (!empty($validated['access_token'])) {
+            $profile->google_access_token = $validated['access_token'];
+            $profile->google_token_expires_at = Carbon::now()->addHour();
+        }
+
+        // 2. Exchange server_auth_code for permanent OAuth tokens if provided
         if (!empty($validated['server_auth_code'])) {
             $tokenRes = $gbpService->exchangeAuthCode($validated['server_auth_code']);
             if (!empty($tokenRes['status'])) {
-                $profile->google_access_token = $tokenRes['access_token'] ?? null;
+                $profile->google_access_token = $tokenRes['access_token'] ?? $profile->google_access_token;
                 $profile->google_refresh_token = $tokenRes['refresh_token'] ?? null;
                 $profile->google_scope = $tokenRes['scope'] ?? null;
                 if (!empty($tokenRes['expires_in'])) {

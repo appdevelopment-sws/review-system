@@ -234,8 +234,10 @@ class GoogleBusinessService
         // 1. Attempt live Google My Business API query if valid credentials and location exist
         if ($token && $loc && $accountId) {
             try {
+                $acc = str_starts_with($accountId, 'accounts/') ? $accountId : "accounts/{$accountId}";
+                $cleanLoc = str_starts_with($loc, 'locations/') ? $loc : "locations/{$loc}";
                 $response = Http::withToken($token)
-                    ->get("https://mybusiness.googleapis.com/v4/{$accountId}/{$loc}/reviews");
+                    ->get("https://mybusiness.googleapis.com/v4/{$acc}/{$cleanLoc}/reviews");
 
                 if ($response->successful()) {
                     $liveReviews = $response->json('reviews') ?? [];
@@ -251,6 +253,11 @@ class GoogleBusinessService
                         }
                         return $liveReviews;
                     }
+                } else {
+                    Log::warning('Google Business Reviews API response', [
+                        'status' => $response->status(),
+                        'body'   => $response->json(),
+                    ]);
                 }
             } catch (\Throwable $e) {
                 Log::warning('Error fetching Google reviews via GBP API: ' . $e->getMessage());
