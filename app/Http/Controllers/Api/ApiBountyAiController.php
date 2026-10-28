@@ -1,15 +1,15 @@
 <?php
 
-namespace AppHttpControllersApi;
+namespace App\Http\Controllers\Api;
 
-use AppHttpControllersController;
-use AppModelsBountyAiCategory;
-use AppModelsBountyAiProfile;
-use AppServicesGoogleBusinessService;
-use CarbonCarbon;
-use AppModelsUser;
-use IlluminateHttpJsonResponse;
-use IlluminateHttpRequest;
+use App\Http\Controllers\Controller;
+use App\Models\BountyAiCategory;
+use App\Models\BountyAiProfile;
+use App\Services\GoogleBusinessService;
+use Carbon\Carbon;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ApiBountyAiController extends Controller
 {
