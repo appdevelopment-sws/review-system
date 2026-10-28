@@ -240,6 +240,15 @@ class GoogleBusinessService
                 if ($response->successful()) {
                     $liveReviews = $response->json('reviews') ?? [];
                     if (!empty($liveReviews)) {
+                        foreach ($liveReviews as &$rev) {
+                            $rId = $rev['reviewId'] ?? ($rev['name'] ?? null);
+                            if ($rId) {
+                                $cachedReply = Cache::get("gbp_reply_{$profile->id}_{$rId}");
+                                if ($cachedReply) {
+                                    $rev['reviewReply'] = $cachedReply;
+                                }
+                            }
+                        }
                         return $liveReviews;
                     }
                 }
@@ -248,68 +257,8 @@ class GoogleBusinessService
             }
         }
 
-        // 2. Fetch dynamic reviews tailored to this business profile
-        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
-        $city  = !empty($profile->city) ? $profile->city : 'Patna';
-        $addr  = !empty($profile->address) ? $profile->address : "Main Commercial Market, {$city}";
-        $cat   = !empty($profile->category) ? $profile->category : ($profile->business_type ?? 'Store');
-
-        $baseReviews = [
-            [
-                'reviewId'   => 'rev_001',
-                'reviewer'   => [
-                    'displayName'     => 'Aman Kashyap',
-                    'profilePhotoUrl' => 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
-                ],
-                'starRating' => 'FIVE',
-                'comment'    => "Best {$cat} in {$city}! Visited {$bName} on {$addr} yesterday. Extremely courteous staff, genuine quality products, and fair pricing. Highly recommended for everyone in {$city}!",
-                'createTime' => Carbon::now()->subHours(4)->toIso8601String(),
-            ],
-            [
-                'reviewId'   => 'rev_002',
-                'reviewer'   => [
-                    'displayName'     => 'Sneha Kumari',
-                    'profilePhotoUrl' => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330',
-                ],
-                'starRating' => 'FOUR',
-                'comment'    => "Very good experience at {$bName}. They have a wide variety of genuine items and transparent billing. Staff assisted promptly throughout my visit.",
-                'createTime' => Carbon::now()->subDays(1)->toIso8601String(),
-            ],
-            [
-                'reviewId'   => 'rev_003',
-                'reviewer'   => [
-                    'displayName'     => 'Vikramaditya Singh',
-                    'profilePhotoUrl' => 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61',
-                ],
-                'starRating' => 'TWO',
-                'comment'    => "The products at {$bName} are top quality, but billing counter took 15 minutes because the POS terminal was slow during rush hours. Hope the team fixes checkout speed soon.",
-                'createTime' => Carbon::now()->subDays(3)->toIso8601String(),
-            ],
-            [
-                'reviewId'   => 'rev_004',
-                'reviewer'   => [
-                    'displayName'     => 'Ritu Raj',
-                    'profilePhotoUrl' => 'https://images.unsplash.com/photo-1580489944761-15a19d654956',
-                ],
-                'starRating' => 'FIVE',
-                'comment'    => "Outstanding customer support! The store manager at {$bName} personally helped me find the exact model I needed and offered a special festive discount. Definite 5 stars!",
-                'createTime' => Carbon::now()->subDays(5)->toIso8601String(),
-                'reviewReply' => [
-                    'comment'    => "Thank you Ritu Raj! ⭐ Your warm recommendation motivates our team at {$bName} every day. Can't wait to see you again soon!",
-                    'updateTime' => Carbon::now()->subDays(5)->toIso8601String(),
-                ],
-            ],
-        ];
-
-        // Attach any replies that were posted by the user in this session
-        foreach ($baseReviews as &$rev) {
-            $cachedReply = Cache::get("gbp_reply_{$profile->id}_{$rev['reviewId']}");
-            if ($cachedReply) {
-                $rev['reviewReply'] = $cachedReply;
-            }
-        }
-
-        return $baseReviews;
+        // Return empty array when no live Google reviews exist yet
+        return [];
     }
 
     /**
@@ -446,25 +395,7 @@ class GoogleBusinessService
         }
 
         $cachedPosts = Cache::get("gbp_posts_{$profile->id}", []);
-        if (!empty($cachedPosts)) {
-            return $cachedPosts;
-        }
-
-        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
-        $city = !empty($profile->city) ? $profile->city : 'Patna';
-
-        $initial = [
-            [
-                'id'     => 'post_init_1',
-                'text'   => "Exciting updates and seasonal offers now available at {$bName}! Visit us in {$city} today for unbeatable prices and guaranteed quality.",
-                'action' => 'LEARN_MORE',
-                'date'   => Carbon::now()->subDays(2)->format('M d, Y'),
-                'isLive' => true,
-            ],
-        ];
-
-        Cache::put("gbp_posts_{$profile->id}", $initial, Carbon::now()->addDays(60));
-        return $initial;
+        return $cachedPosts ?? [];
     }
 
     /**
@@ -472,31 +403,31 @@ class GoogleBusinessService
      */
     protected function getFallbackLocations(BountyAiProfile $profile): array
     {
-        $bName = !empty($profile->business_name) ? $profile->business_name : (!empty($profile->google_account_name) ? $profile->google_account_name : 'My Business');
-        $city = !empty($profile->city) ? $profile->city : 'Patna';
-        $state = !empty($profile->state) ? $profile->state : 'Bihar';
-        $pin = !empty($profile->pincode) ? $profile->pincode : '800001';
-        $addr = !empty($profile->address) ? $profile->address : "Main Commercial Road, {$city}";
-        $phone = !empty($profile->phone_number) ? $profile->phone_number : '+91 98765 43210';
-        $cat = !empty($profile->category) ? $profile->category : 'Retail Store';
+        if (empty($profile->business_name) && empty($profile->google_account_name)) {
+            return [];
+        }
 
-        $fullAddr = str_contains($addr, $city) ? $addr : "{$addr}, {$city}, {$state} - {$pin}";
-        $prefix = strtoupper(substr($city, 0, 3));
+        $bName = !empty($profile->business_name) ? $profile->business_name : $profile->google_account_name;
+        $city = $profile->city ?? '';
+        $state = $profile->state ?? '';
+        $addr = $profile->address ?? '';
+        $phone = $profile->phone_number ?? '';
+        $cat = $profile->category ?? ($profile->business_type ?? '');
 
         return [
             [
-                'id'            => 'loc_001',
+                'id'            => $profile->google_location_id ?? 'loc_001',
                 'title'         => $bName,
-                'address'       => $fullAddr,
+                'address'       => $addr,
                 'phone'         => $phone,
                 'city'          => $city,
                 'state'         => $state,
                 'category'      => $cat,
-                'rating'        => 4.8,
-                'totalReviews'  => 142,
-                'isVerified'    => true,
-                'hasStorefront' => true,
-                'storeCode'     => "{$prefix}-HQ-01",
+                'rating'        => (float) ($profile->google_rating ?? 0.0),
+                'totalReviews'  => (int) ($profile->google_reviews_count ?? 0),
+                'isVerified'    => (bool) ($profile->is_google_connected ?? false),
+                'hasStorefront' => !empty($addr),
+                'storeCode'     => null,
             ],
         ];
     }

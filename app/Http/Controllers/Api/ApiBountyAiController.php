@@ -84,6 +84,12 @@ class ApiBountyAiController extends Controller
             'status' => true,
             'data' => [
                 'categories' => $categories,
+                'google_oauth_diagnostics' => [
+                    'has_client_id' => !empty(env('GOOGLE_CLIENT_ID')) || !empty(config('services.google.client_id')),
+                    'client_id_prefix' => substr(env('GOOGLE_CLIENT_ID') ?: (config('services.google.client_id') ?: ''), 0, 15),
+                    'has_client_secret' => !empty(env('GOOGLE_CLIENT_SECRET')) || !empty(config('services.google.client_secret')),
+                    'client_secret_length' => strlen(env('GOOGLE_CLIENT_SECRET') ?: (config('services.google.client_secret') ?: '')),
+                ],
                 'business_types' => [
                     'Retail Store',
                     'Electronics & Appliances',
