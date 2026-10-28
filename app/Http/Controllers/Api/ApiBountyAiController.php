@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -421,6 +421,7 @@ class ApiBountyAiController extends Controller
             'google_account_email' => 'required|email|max:255',
             'google_account_name' => 'nullable|string|max:255',
             'google_avatar_url' => 'nullable|string',
+            'server_auth_code' => 'nullable|string',
             'is_google_connected' => 'nullable|boolean',
         ]);
 
@@ -451,14 +452,61 @@ class ApiBountyAiController extends Controller
         if (!empty($validated['google_avatar_url'])) {
             $profile->google_avatar_url = $validated['google_avatar_url'];
         }
+
+        $gbpService = new GoogleBusinessService();
+
+        // 1. Exchange server_auth_code for permanent OAuth tokens
+        if (!empty($validated['server_auth_code'])) {
+            $tokenRes = $gbpService->exchangeAuthCode($validated['server_auth_code']);
+            if (!empty($tokenRes['status'])) {
+                $profile->google_access_token = $tokenRes['access_token'] ?? null;
+                $profile->google_refresh_token = $tokenRes['refresh_token'] ?? null;
+                $profile->google_scope = $tokenRes['scope'] ?? null;
+                if (!empty($tokenRes['expires_in'])) {
+                    $profile->google_token_expires_at = Carbon::now()->addSeconds((int) $tokenRes['expires_in']);
+                }
+            }
+        }
+
         $profile->current_step = max(5, (int) $profile->current_step);
         $profile->save();
+
+        // 2. Fetch live Google Business Profile Locations
+        $locations = $gbpService->fetchLocations($profile);
+
+        // 3. Auto-populate profile details from the first location if available
+        if (!empty($locations) && is_array($locations)) {
+            $first = $locations[0];
+            if (!empty($first['id'])) {
+                $profile->google_location_id = $first['id'];
+            }
+            if (!empty($first['title']) && (empty($profile->business_name) || $profile->business_name === 'My Business')) {
+                $profile->business_name = $first['title'];
+            }
+            if (!empty($first['address'])) {
+                $profile->google_location_address = $first['address'];
+                if (empty($profile->address)) {
+                    $profile->address = $first['address'];
+                }
+            }
+            if (isset($first['rating'])) {
+                $profile->google_rating = $first['rating'];
+            }
+            if (isset($first['totalReviews'])) {
+                $profile->google_reviews_count = $first['totalReviews'];
+            }
+            if (!empty($first['category']) && empty($profile->category)) {
+                $profile->category = $first['category'];
+            }
+            $profile->save();
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'Google Business Profile connected successfully!',
             'data' => [
                 'profile' => $profile,
+                'listings' => $locations,
             ],
         ]);
     }

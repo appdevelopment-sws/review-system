@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Services;
 
@@ -30,13 +30,21 @@ class GoogleBusinessService
         }
 
         try {
-            $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+            $payload = [
                 'code'          => $authCode,
                 'client_id'     => config('services.google.client_id'),
                 'client_secret' => config('services.google.client_secret'),
                 'redirect_uri'  => config('services.google.redirect_uri', 'postmessage'),
                 'grant_type'    => 'authorization_code',
-            ]);
+            ];
+
+            $response = Http::asForm()->post('https://oauth2.googleapis.com/token', $payload);
+
+            if (!$response->successful()) {
+                // Android GoogleSignIn serverAuthCode fallback: empty redirect_uri
+                $payload['redirect_uri'] = '';
+                $response = Http::asForm()->post('https://oauth2.googleapis.com/token', $payload);
+            }
 
             if ($response->successful()) {
                 $data = $response->json();
