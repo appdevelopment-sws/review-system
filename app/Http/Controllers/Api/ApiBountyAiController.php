@@ -70,6 +70,30 @@ class ApiBountyAiController extends Controller
             ]);
         }
 
+        // Cleanse legacy hardcoded fallback data if present on this profile
+        $dirty = false;
+        if ($profile->phone_number === '+91 98765 43210') {
+            $profile->phone_number = null;
+            $dirty = true;
+        }
+        if ($profile->address === 'Main Commercial Road, Patna' || $profile->google_location_address === 'Main Commercial Road, Patna') {
+            $profile->address = null;
+            $profile->google_location_address = null;
+            $dirty = true;
+        }
+        if ($profile->google_location_id === 'loc_001') {
+            $profile->google_location_id = null;
+            $dirty = true;
+        }
+        if ((float)$profile->google_rating === 4.8 && (int)$profile->google_reviews_count === 142 && empty($profile->google_access_token)) {
+            $profile->google_rating = null;
+            $profile->google_reviews_count = 0;
+            $dirty = true;
+        }
+        if ($dirty) {
+            $profile->save();
+        }
+
         return $profile;
     }
 
