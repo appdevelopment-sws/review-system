@@ -1,12 +1,12 @@
 <?php
 
-namespace AppServices;
+namespace App\Services;
 
-use AppModelsBountyAiProfile;
-use IlluminateSupportFacadesHttp;
-use IlluminateSupportFacadesLog;
-use IlluminateSupportFacadesCache;
-use CarbonCarbon;
+use App\Models\BountyAiProfile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class GoogleBusinessService
 {
