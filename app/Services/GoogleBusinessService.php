@@ -213,13 +213,26 @@ class GoogleBusinessService
     public function fetchReviews(BountyAiProfile $profile, ?string $locationId = null): array
     {
         $token = $this->getValidAccessToken($profile);
-        $loc = $locationId ?? $profile->google_location_id;
-        $acc = $profile->google_account_id ?? 'accounts/my_account';
+        if (!$token) {
+            return [];
+        }
 
-        if ($token && $loc) {
+        $accountId = $profile->google_account_id;
+        if (empty($accountId)) {
+            $accounts = $this->fetchAccounts($profile);
+            $accountId = !empty($accounts) ? ($accounts[0]['name'] ?? null) : null;
+        }
+
+        $loc = $locationId ?? $profile->google_location_id;
+        if (empty($loc)) {
+            $locations = $this->fetchLocations($profile);
+            $loc = !empty($locations) ? ($locations[0]['id'] ?? null) : null;
+        }
+
+        if ($token && $loc && $accountId) {
             try {
                 $response = Http::withToken($token)
-                    ->get("https://mybusiness.googleapis.com/v4/{$acc}/{$loc}/reviews");
+                    ->get("https://mybusiness.googleapis.com/v4/{$accountId}/{$loc}/reviews");
 
                 if ($response->successful()) {
                     return $response->json('reviews') ?? [];
@@ -229,24 +242,7 @@ class GoogleBusinessService
             }
         }
 
-        return [
-            [
-                'reviewId'       => 'rev_001',
-                'reviewer'       => ['displayName' => 'Amit Sharma', 'profilePhotoUrl' => ''],
-                'starRating'     => 'FIVE',
-                'comment'        => 'Excellent customer service and quality products. Highly recommend visiting!',
-                'createTime'     => Carbon::now()->subDays(2)->toIso8601String(),
-                'reviewReply'    => null,
-            ],
-            [
-                'reviewId'       => 'rev_002',
-                'reviewer'       => ['displayName' => 'Pooja Verma', 'profilePhotoUrl' => ''],
-                'starRating'     => 'FOUR',
-                'comment'        => 'Very good experience overall. Prompt staff and clean store.',
-                'createTime'     => Carbon::now()->subDays(4)->toIso8601String(),
-                'reviewReply'    => null,
-            ],
-        ];
+        return [];
     }
 
     /**
