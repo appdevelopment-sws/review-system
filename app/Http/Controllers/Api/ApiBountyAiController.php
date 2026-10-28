@@ -666,4 +666,26 @@ class ApiBountyAiController extends Controller
         return response()->json($res);
     }
 
+    /**
+     * Fetch published Google Business Profile posts.
+     */
+    public function getGooglePosts(Request $request): JsonResponse
+    {
+        $userId = $request->query('user_id') ?? ($request->user() ? $request->user()->id : null);
+        $profile = $userId ? BountyAiProfile::where('user_id', $userId)->first() : null;
+
+        if (!$profile) {
+            return response()->json(['status' => false, 'message' => 'Business profile not found'], 404);
+        }
+
+        $gbpService = new GoogleBusinessService();
+        $posts = $gbpService->fetchPosts($profile);
+
+        return response()->json([
+            'status' => true,
+            'data'   => [
+                'posts' => $posts,
+            ],
+        ]);
+    }
 }

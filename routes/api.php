@@ -26,6 +26,7 @@ Route::post('/bounty-ai/google-location', [ApiBountyAiController::class, 'saveSt
 Route::get('/bounty-ai/google-locations', [ApiBountyAiController::class, 'getGoogleLocations']);
 Route::get('/bounty-ai/google-reviews', [ApiBountyAiController::class, 'getGoogleReviews']);
 Route::post('/bounty-ai/google-reviews/reply', [ApiBountyAiController::class, 'replyGoogleReview']);
+Route::get('/bounty-ai/google-posts', [ApiBountyAiController::class, 'getGooglePosts']);
 Route::post('/bounty-ai/google-posts', [ApiBountyAiController::class, 'createGooglePost']);
 
 
