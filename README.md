@@ -7,6 +7,26 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Docker Quickstart
+
+The backend comes pre-configured with a complete Docker stack (PHP 8.4-FPM, Nginx, MySQL 8.0, Redis, phpMyAdmin, and Queue Worker).
+
+```bash
+# 1. Copy docker environment configuration
+cp .env.docker .env
+
+# 2. Build and start containers
+make build     # or: docker compose up -d --build
+
+# 3. Run database migrations
+make migrate   # or: docker compose exec app php artisan migrate
+```
+
+- **API URL**: [http://localhost:8000](http://localhost:8000)
+- **phpMyAdmin**: [http://localhost:8080](http://localhost:8080)
+
+For full documentation, commands, and architecture details, see [DOCKER.md](DOCKER.md).
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
