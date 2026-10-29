@@ -31,21 +31,17 @@ class GoogleBusinessService
         }
 
         try {
+            // Android GoogleSignIn serverAuthCode requires empty string or omitted redirect_uri (NOT 'postmessage')
+            $redirectUri = config('services.google.redirect_uri', '');
             $payload = [
                 'code'          => $authCode,
                 'client_id'     => config('services.google.client_id'),
                 'client_secret' => config('services.google.client_secret'),
-                'redirect_uri'  => config('services.google.redirect_uri', 'postmessage'),
+                'redirect_uri'  => $redirectUri,
                 'grant_type'    => 'authorization_code',
             ];
 
             $response = Http::asForm()->post('https://oauth2.googleapis.com/token', $payload);
-
-            if (!$response->successful()) {
-                // Android GoogleSignIn serverAuthCode fallback: empty redirect_uri
-                $payload['redirect_uri'] = '';
-                $response = Http::asForm()->post('https://oauth2.googleapis.com/token', $payload);
-            }
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -144,6 +140,11 @@ class GoogleBusinessService
                     }
                 }
                 return $accounts;
+            } else {
+                Log::warning('Google Business Accounts API returned error', [
+                    'status' => $response->status(),
+                    'body'   => $response->json() ?? $response->body(),
+                ]);
             }
         } catch (\Throwable $e) {
             Log::warning('Error fetching Google Business Accounts: ' . $e->getMessage());
@@ -204,6 +205,12 @@ class GoogleBusinessService
                         }
                         return $formatted;
                     }
+                } else {
+                    Log::warning('Google Business Locations API returned error', [
+                        'status'    => $response->status(),
+                        'accountId' => $accountId,
+                        'body'      => $response->json() ?? $response->body(),
+                    ]);
                 }
             } catch (\Throwable $e) {
                 Log::warning('Google Business Locations API query: ' . $e->getMessage());
