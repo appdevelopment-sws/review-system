@@ -126,6 +126,10 @@ class GoogleBusinessService
             return [];
         }
 
+        if (Cache::has("gbp_quota_exhausted_{$profile->id}")) {
+            return [];
+        }
+
         try {
             $response = Http::withToken($token)
                 ->get('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
@@ -140,6 +144,10 @@ class GoogleBusinessService
                     }
                 }
                 return $accounts;
+            } elseif ($response->status() === 429) {
+                // Cache 429 backoff for 10 minutes so we do not flood logs or hammer Google
+                Cache::put("gbp_quota_exhausted_{$profile->id}", true, now()->addMinutes(10));
+                Log::warning('Google Business Accounts API quota is 0 (Project 558540177698 requires Google Business Profile API Access Request form approval). Cached backoff for 10 mins.');
             } else {
                 Log::warning('Google Business Accounts API returned error', [
                     'status' => $response->status(),
@@ -271,7 +279,106 @@ class GoogleBusinessService
             }
         }
 
+        // 2. Fallback to Google Places API (active immediately, zero quota approval needed)
+        $placesReviews = $this->fetchReviewsViaPlacesApi($profile);
+        if (!empty($placesReviews)) {
+            return $placesReviews;
+        }
+
         // Return empty array when no live Google reviews exist yet
+        return [];
+    }
+
+    /**
+     * Fetch customer reviews via Google Places API (active immediately, no GBP 0-quota restriction).
+     */
+    public function fetchReviewsViaPlacesApi(BountyAiProfile $profile): array
+    {
+        $apiKey = env('GOOGLE_PLACES_API_KEY') ?: (env('GOOGLE_MAPS_API_KEY') ?: config('services.google.places_api_key'));
+        if (empty($apiKey)) {
+            return [];
+        }
+
+        $businessName = $profile->business_name ?: $profile->google_account_name;
+        if (empty($businessName)) {
+            return [];
+        }
+
+        $query = $businessName;
+        if (!empty($profile->city)) {
+            $query .= ' ' . $profile->city;
+        }
+
+        try {
+            // 1. Find Place ID from business name and city
+            $searchRes = Http::get('https://maps.googleapis.com/maps/api/place/findplacefromtext/json', [
+                'input'     => $query,
+                'inputtype' => 'textquery',
+                'fields'    => 'place_id,name,rating,user_ratings_total',
+                'key'       => $apiKey,
+            ]);
+
+            if (!$searchRes->successful() || empty($searchRes->json('candidates'))) {
+                return [];
+            }
+
+            $placeId = $searchRes->json('candidates.0.place_id');
+            if (empty($placeId)) {
+                return [];
+            }
+
+            // 2. Fetch Place Details including reviews and ratings
+            $detailsRes = Http::get('https://maps.googleapis.com/maps/api/place/details/json', [
+                'place_id' => $placeId,
+                'fields'   => 'name,rating,user_ratings_total,reviews,formatted_address,formatted_phone_number',
+                'key'      => $apiKey,
+            ]);
+
+            if ($detailsRes->successful()) {
+                $result = $detailsRes->json('result') ?? [];
+
+                if (isset($result['rating'])) {
+                    $profile->google_rating = (float) $result['rating'];
+                }
+                if (isset($result['user_ratings_total'])) {
+                    $profile->google_reviews_count = (int) $result['user_ratings_total'];
+                }
+                if (!empty($result['formatted_address']) && empty($profile->address)) {
+                    $profile->address = $result['formatted_address'];
+                }
+                $profile->save();
+
+                $rawReviews = $result['reviews'] ?? [];
+                $formattedReviews = [];
+                foreach ($rawReviews as $rev) {
+                    $rId = 'place_rev_' . md5($rev['author_name'] . ($rev['time'] ?? ''));
+                    $cachedReply = Cache::get("gbp_reply_{$profile->id}_{$rId}");
+
+                    $formattedReviews[] = [
+                        'reviewId'      => $rId,
+                        'reviewer'      => [
+                            'displayName'     => $rev['author_name'] ?? 'Google Customer',
+                            'profilePhotoUrl' => $rev['profile_photo_url'] ?? '',
+                        ],
+                        'starRating'    => match ((int) ($rev['rating'] ?? 5)) {
+                            5 => 'FIVE',
+                            4 => 'FOUR',
+                            3 => 'THREE',
+                            2 => 'TWO',
+                            1 => 'ONE',
+                            default => 'FIVE',
+                        },
+                        'comment'       => $rev['text'] ?? '',
+                        'createTime'    => !empty($rev['time']) ? Carbon::createFromTimestamp($rev['time'])->toISOString() : Carbon::now()->toISOString(),
+                        'reviewReply'   => $cachedReply ?? null,
+                    ];
+                }
+                return $formattedReviews;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Google Places API review fetch exception: ' . $e->getMessage());
+        }
+
         return [];
     }
 
@@ -428,9 +535,13 @@ class GoogleBusinessService
         $phone = $profile->phone_number ?? '';
         $cat = $profile->category ?? ($profile->business_type ?? '');
 
+        $locId = (!empty($profile->google_location_id) && $profile->google_location_id !== 'loc_001')
+            ? $profile->google_location_id
+            : ('loc_' . $profile->id);
+
         return [
             [
-                'id'            => $profile->google_location_id ?? 'loc_001',
+                'id'            => $locId,
                 'title'         => $bName,
                 'address'       => $addr,
                 'phone'         => $phone,
