@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Route;
 // Public Authentication Routes
 Route::post('/register', [ApiAuthController::class, 'register']);
 Route::post('/login', [ApiAuthController::class, 'login']);
+Route::post('/send-otp', [ApiAuthController::class, 'sendOtp']);
+Route::post('/verify-otp', [ApiAuthController::class, 'verifyOtp']);
 Route::get('/marketing-goals', [ApiTaskController::class, 'marketingGoals']);
 
 // Bounty AI Onboarding & Business Profile Routes

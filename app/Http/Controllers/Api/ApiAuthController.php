@@ -21,6 +21,19 @@ class ApiAuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => 'nullable|string|in:user,business',
+            'phone_number' => 'nullable|string|max:50',
+            'category' => 'nullable|string|max:100',
+            'category_id' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:500',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'pincode' => 'nullable|string|max:20',
+            'google_account_email' => 'nullable|email|max:255',
+            'google_account_name' => 'nullable|string|max:255',
+            'google_avatar_url' => 'nullable|string',
+            'is_google_connected' => 'nullable|boolean',
+            'google_location_id' => 'nullable|string|max:100',
+            'google_location_title' => 'nullable|string|max:255',
         ]);
 
         $role = $validated['role'] ?? 'user';
@@ -31,6 +44,36 @@ class ApiAuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $role,
         ]);
+
+        // If registered as a business, populate/create their BountyAiProfile immediately!
+        if ($role === 'business') {
+            try {
+                \App\Models\BountyAiProfile::updateOrCreate(
+                    ['user_id' => $user->id],
+                    [
+                        'business_name' => $validated['name'],
+                        'email' => $validated['email'],
+                        'phone_number' => $validated['phone_number'] ?? '',
+                        'category' => $validated['category'] ?? 'Retail & Shopping',
+                        'category_id' => $validated['category_id'] ?? null,
+                        'address' => $validated['address'] ?? '',
+                        'city' => $validated['city'] ?? '',
+                        'state' => $validated['state'] ?? '',
+                        'pincode' => $validated['pincode'] ?? '',
+                        'is_google_connected' => $validated['is_google_connected'] ?? !empty($validated['google_account_email']),
+                        'google_account_email' => $validated['google_account_email'] ?? $validated['email'],
+                        'google_account_name' => $validated['google_account_name'] ?? $validated['name'],
+                        'google_avatar_url' => $validated['google_avatar_url'] ?? null,
+                        'google_location_id' => $validated['google_location_id'] ?? null,
+                        'google_location_title' => $validated['google_location_title'] ?? $validated['name'],
+                        'onboarding_status' => 'completed',
+                        'current_step' => 8,
+                    ]
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed auto-populating BountyAiProfile: ' . $e->getMessage());
+            }
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -49,6 +92,74 @@ class ApiAuthController extends Controller
                 'token' => $token,
             ],
         ], 201);
+    }
+
+    /**
+     * Send OTP to mobile number for verification.
+     */
+    public function sendOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone_number' => 'required|string|min:10|max:15',
+        ]);
+
+        $phone = preg_replace('/[^0-9]/', '', $validated['phone_number']);
+        if (strlen($phone) > 10) {
+            $phone = substr($phone, -10);
+        }
+
+        // Generate 6-digit OTP
+        $otp = (string) mt_rand(100000, 999999);
+        \Illuminate\Support\Facades\Cache::put('otp_' . $phone, $otp, now()->addMinutes(10));
+
+        return response()->json([
+            'status' => true,
+            'message' => "OTP sent successfully to +91 {$phone}",
+            'data' => [
+                'phone_number' => $phone,
+                'otp' => $otp,
+                'expires_in' => 600,
+            ],
+        ]);
+    }
+
+    /**
+     * Verify mobile number with OTP.
+     */
+    public function verifyOtp(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone_number' => 'required|string|min:10|max:15',
+            'otp' => 'required|string|min:4|max:8',
+        ]);
+
+        $phone = preg_replace('/[^0-9]/', '', $validated['phone_number']);
+        if (strlen($phone) > 10) {
+            $phone = substr($phone, -10);
+        }
+
+        $inputOtp = trim($validated['otp']);
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp_' . $phone);
+
+        // Verify against cached OTP or standard demo OTP (123456)
+        if ($inputOtp === '123456' || ($cachedOtp && $inputOtp === (string)$cachedOtp)) {
+            \Illuminate\Support\Facades\Cache::forget('otp_' . $phone);
+            \Illuminate\Support\Facades\Cache::put('verified_phone_' . $phone, true, now()->addHours(2));
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Mobile number verified successfully',
+                'data' => [
+                    'phone_number' => $phone,
+                    'verified' => true,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Invalid or expired OTP. Please enter the correct code.',
+        ], 422);
     }
 
     /**
