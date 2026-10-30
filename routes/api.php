@@ -13,6 +13,7 @@ Route::post('/register', [ApiAuthController::class, 'register']);
 Route::post('/login', [ApiAuthController::class, 'login']);
 Route::post('/send-otp', [ApiAuthController::class, 'sendOtp']);
 Route::post('/verify-otp', [ApiAuthController::class, 'verifyOtp']);
+Route::post('/google-login', [ApiAuthController::class, 'googleLogin']);
 Route::get('/marketing-goals', [ApiTaskController::class, 'marketingGoals']);
 
 // Bounty AI Onboarding & Business Profile Routes
