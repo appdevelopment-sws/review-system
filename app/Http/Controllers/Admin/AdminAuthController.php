@@ -1037,7 +1037,49 @@ class AdminAuthController extends Controller
     {
         $profile = BountyAiProfile::findOrFail($id);
         $name = $profile->business_name;
-        $profile->delete();
+
+        DB::transaction(function () use ($profile) {
+            // Find any associated User account (by user_id, email, or google_account_email)
+            $user = null;
+            if ($profile->user_id) {
+                $user = User::find($profile->user_id);
+            }
+            if (!$user && !empty($profile->email)) {
+                $user = User::where('email', $profile->email)->first();
+            }
+            if (!$user && !empty($profile->google_account_email)) {
+                $user = User::where('email', $profile->google_account_email)->first();
+            }
+
+            // If an associated user account exists and is not an administrator, clean up and delete it
+            if ($user && !$user->isAdmin()) {
+                if ($user->campaigns()->exists()) {
+                    foreach ($user->campaigns as $campaign) {
+                        $campaign->delete();
+                    }
+                }
+                $user->participations()->delete();
+                $user->walletTransactions()->delete();
+                $user->withdrawalRequests()->delete();
+                $user->payoutDetails()->delete();
+
+                if (method_exists($user, 'tokens')) {
+                    $user->tokens()->delete();
+                }
+
+                try {
+                    DB::table('sessions')->where('user_id', $user->id)->delete();
+                } catch (\Throwable $e) {}
+
+                try {
+                    DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+                } catch (\Throwable $e) {}
+
+                $user->delete();
+            }
+
+            $profile->delete();
+        });
 
         return redirect()->route('admin.bounty-ai-users')->with('success', "Bounty AI profile for '{$name}' deleted successfully!");
     }
